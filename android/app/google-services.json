@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "YOUR_PROJECT_NUMBER",
-    "firebase_url": "https://YOUR_PROJECT_ID.firebaseio.com",
-    "project_id": "YOUR_PROJECT_ID",
-    "storage_bucket": "YOUR_PROJECT_ID.appspot.com"
+    "project_number": "712018637993",
+    "project_id": "pass-pro-79286",
+    "storage_bucket": "pass-pro-79286.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID",
+        "mobilesdk_app_id": "1:712018637993:android:4a91c3be54f7a66de925b8",
         "android_client_info": {
           "package_name": "com.securepass.securepass_pro"
         }
@@ -16,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_API_KEY"
+          "current_key": "AIzaSyANPvIwDannP9oactOvme63Ia5MBcErX_A"
         }
       ],
       "services": {
