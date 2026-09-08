@@ -145,7 +145,7 @@ Future<void> _initializeServices() async {
   await StorageService.instance.initialize();
   serviceRegistry.register('storage', StorageService.instance, description: 'Storage service', dependencies: ['preferences_storage']);
 
-  EncryptionService.instance.initialize();
+  await EncryptionService.instance.initialize();
   serviceRegistry.register('encryption', EncryptionService.instance, description: 'Encryption service');
 
   await HistoryService().initialize();

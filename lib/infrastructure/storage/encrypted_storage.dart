@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 
 class EncryptedStorage {
@@ -8,54 +7,57 @@ class EncryptedStorage {
   static EncryptedStorage get instance => _instance;
 
   static const String _prefix = 'enc_';
-  SharedPreferences? _prefs;
+
+  static const AndroidOptions _androidOptions = AndroidOptions(
+    encryptedSharedPreferences: true,
+  );
+
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: _androidOptions,
+  );
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    AppLogger.instance.info('Encrypted storage initialized (plain mode)', category: 'STORAGE');
-  }
-
-  SharedPreferences get _effectivePrefs {
-    if (_prefs == null) {
-      throw StateError('EncryptedStorage not initialized. Call init() first.');
-    }
-    return _prefs!;
+    AppLogger.instance.info(
+      'Encrypted storage initialized (keystore-backed)',
+      category: 'STORAGE',
+    );
   }
 
   Future<void> store(String key, String value) async {
-    final encoded = base64Encode(utf8.encode(value));
-    await _effectivePrefs.setString('$_prefix$key', encoded);
+    await _secureStorage.write(key: '$_prefix$key', value: value);
     AppLogger.instance.debug('Stored encrypted value for key: $key', category: 'STORAGE');
   }
 
   Future<String?> retrieve(String key) async {
-    final encoded = _effectivePrefs.getString('$_prefix$key');
-    if (encoded == null) return null;
-    return utf8.decode(base64Decode(encoded));
+    return _secureStorage.read(key: '$_prefix$key');
   }
 
   Future<void> remove(String key) async {
-    await _effectivePrefs.remove('$_prefix$key');
+    await _secureStorage.delete(key: '$_prefix$key');
   }
 
   Future<bool> contains(String key) async {
-    return _effectivePrefs.containsKey('$_prefix$key');
+    final value = await _secureStorage.read(key: '$_prefix$key');
+    return value != null;
   }
 
   Future<void> clear() async {
-    final keys = _effectivePrefs.getKeys().where((k) => k.startsWith(_prefix));
-    for (final key in keys) {
-      await _effectivePrefs.remove(key);
+    final dictionary = await _secureStorage.readAll();
+    for (final entry in dictionary.keys) {
+      if (entry.startsWith(_prefix)) {
+        await _secureStorage.delete(key: entry);
+      }
     }
     AppLogger.instance.info('Encrypted storage cleared', category: 'STORAGE');
   }
 
   Future<int> getSize() async {
-    final keys = _effectivePrefs.getKeys().where((k) => k.startsWith(_prefix));
+    final dictionary = await _secureStorage.readAll();
     int total = 0;
-    for (final key in keys) {
-      final value = _effectivePrefs.getString(key);
-      total += key.length + (value?.length ?? 0);
+    for (final entry in dictionary.entries) {
+      if (entry.key.startsWith(_prefix)) {
+        total += entry.key.length + entry.value.length;
+      }
     }
     return total;
   }

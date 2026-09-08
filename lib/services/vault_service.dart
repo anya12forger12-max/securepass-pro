@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:securepass_pro/domain/entities/vault_entry.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
-import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
+import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 
 class VaultService {
   static final VaultService _instance = VaultService._();
@@ -17,6 +20,7 @@ class VaultService {
   final Set<String> _folders = {};
   bool _isLocked = true;
   String? _vaultPin;
+  String? _hashChars;
   int _autoLockSeconds = 300;
   DateTime? _lastUnlockTime;
 
@@ -25,7 +29,7 @@ class VaultService {
   Set<String> get folders => Set.unmodifiable(_folders);
 
   Future<void> initialize() async {
-    _load();
+    await _load();
     AppLogger.instance.info(
       'VaultService initialized with ${_entries.length} entries, ${_folders.length} folders',
       category: 'VaultService',
@@ -291,23 +295,39 @@ class VaultService {
   }
 
   String _hashPin(String pin) {
-    int hash = 0;
-    for (int i = 0; i < pin.length; i++) {
-      hash = ((hash << 5) - hash + pin.codeUnitAt(i)) & 0xFFFFFFFF;
-    }
-    return hash.toRadixString(16);
+    final salt = _storedSalt;
+    return '${sha256.convert(utf8.encode('$salt:$pin')).toString()}';
+  }
+
+  String get _storedSalt {
+    final existing = _hashChars;
+    if (existing != null && existing.length == 16) return existing;
+    final randomSalt = _randomSalt();
+    _hashChars = randomSalt;
+    return randomSalt;
+  }
+
+  String _randomSalt() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(8, (_) => random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   void _save() {
+    unawaited(_persist());
+  }
+
+  Future<void> _persist() async {
     try {
       final data = jsonEncode({
         'entries': _entries.map((e) => e.toMap()).toList(),
         'folders': _folders.toList(),
         'vaultPin': _vaultPin,
+        'salt': _hashChars,
         'autoLockSeconds': _autoLockSeconds,
         'isLocked': _isLocked,
       });
-      PreferencesStorage.instance.setString(_storageKey, data);
+      await EncryptedStorage.instance.store(_storageKey, data);
     } catch (e) {
       AppLogger.instance.error(
         'Failed to save vault: $e',
@@ -316,13 +336,14 @@ class VaultService {
     }
   }
 
-  void _load() {
+  Future<void> _load() async {
     try {
-      final data = PreferencesStorage.instance.getString(_storageKey);
+      final data = await EncryptedStorage.instance.retrieve(_storageKey);
       if (data == null || data.isEmpty) return;
 
       final json = jsonDecode(data) as Map<String, dynamic>;
       _vaultPin = json['vaultPin'] as String?;
+      _hashChars = json['salt'] as String?;
       _autoLockSeconds = json['autoLockSeconds'] as int? ?? 300;
       _isLocked = json['isLocked'] as bool? ?? true;
 

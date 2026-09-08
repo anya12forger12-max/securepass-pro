@@ -66,7 +66,7 @@ class ExportService {
         content = _formatAsYaml(maskedData, config);
       case ExportFormat.encryptedJson:
         final jsonContent = _formatAsJson(maskedData, config);
-        content = EncryptionService.instance.encrypt(jsonContent);
+        content = await EncryptionService.instance.encrypt(jsonContent);
     }
 
     final filename = generateFilename(config.format, 'export');

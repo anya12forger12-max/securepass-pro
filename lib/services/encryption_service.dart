@@ -1,32 +1,61 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 
 class EncryptionService {
   EncryptionService._();
   static final EncryptionService _instance = EncryptionService._();
   static EncryptionService get instance => _instance;
 
+  static const String _keyStorageKey = 'aes_master_key_v1';
+
+  final AesGcm _aesGcm = AesGcm.with256bits();
+
   bool _initialized = false;
-  String? _currentKey;
+  SecretKey? _currentKey;
 
-  void initialize() {
+  Future<void> initialize() async {
     if (_initialized) return;
-    _currentKey = generateKey();
+
+    final storedKey = await EncryptedStorage.instance.retrieve(_keyStorageKey);
+    if (storedKey != null && storedKey.isNotEmpty) {
+      _currentKey = SecretKey(base64Decode(storedKey));
+    } else {
+      final key = await _aesGcm.newSecretKey();
+      _currentKey = key;
+      await EncryptedStorage.instance.store(
+        _keyStorageKey,
+        base64Encode(await key.extractBytes()),
+      );
+    }
+
     _initialized = true;
-    AppLogger.instance.info('Encryption service initialized', category: 'ENCRYPTION');
+    AppLogger.instance.info(
+      'Encryption service initialized (AES-256-GCM)',
+      category: 'ENCRYPTION',
+    );
   }
 
-  String encrypt(String plaintext) {
-    return base64Encode(utf8.encode(plaintext));
+  Future<String> encrypt(String plaintext) async {
+    final key = _requireKey();
+    final box = await _aesGcm.encrypt(utf8.encode(plaintext), secretKey: key);
+    return base64Encode(box.concatenation());
   }
 
-  String decrypt(String ciphertext) {
+  Future<String> decrypt(String ciphertext) async {
     try {
-      return utf8.decode(base64Decode(ciphertext));
+      final key = _requireKey();
+      final box = SecretBox.fromConcatenation(
+        base64Decode(ciphertext),
+        nonceLength: 12,
+        macLength: 16,
+      );
+      final clearText = await _aesGcm.decrypt(box, secretKey: key);
+      return utf8.decode(clearText);
     } catch (e) {
       AppLogger.instance.error('Decryption failed', category: 'ENCRYPTION');
       return '';
@@ -34,14 +63,11 @@ class EncryptionService {
   }
 
   String hashData(String data) {
-    final bytes = utf8.encode(data);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+    return sha256.convert(utf8.encode(data)).toString();
   }
 
   bool verifyIntegrity(String data, String expectedHash) {
-    final actualHash = hashData(data);
-    return actualHash == expectedHash;
+    return hashData(data) == expectedHash;
   }
 
   String generateKey() {
@@ -50,24 +76,12 @@ class EncryptionService {
     return base64Encode(values);
   }
 
-  String? get currentKey => _currentKey;
-
-  void rotateKey() {
-    _currentKey = generateKey();
-    AppLogger.instance.info('Encryption key rotated', category: 'ENCRYPTION');
-  }
-
-  Uint8List encryptBytes(Uint8List data) {
-    if (_currentKey == null) return data;
-    final keyBytes = base64Decode(_currentKey!);
-    final result = Uint8List(data.length);
-    for (var i = 0; i < data.length; i++) {
-      result[i] = data[i] ^ keyBytes[i % keyBytes.length];
+  SecretKey _requireKey() {
+    if (_currentKey == null) {
+      throw StateError(
+        'Encryption service not initialized. Call initialize() first.',
+      );
     }
-    return result;
-  }
-
-  Uint8List decryptBytes(Uint8List data) {
-    return encryptBytes(data);
+    return _currentKey!;
   }
 }
