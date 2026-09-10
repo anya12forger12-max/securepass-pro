@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:securepass_pro/navigation/app_router.dart';
 import 'package:securepass_pro/themes/theme_state.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
@@ -63,11 +64,18 @@ import 'package:securepass_pro/infrastructure/marketplace/module_manifest.dart';
 import 'package:securepass_pro/infrastructure/ui_platform/ui_platform.dart';
 import 'package:securepass_pro/infrastructure/accessibility_platform/accessibility_platform.dart';
 import 'package:securepass_pro/infrastructure/api_maturity/api_maturity.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await _initializeInfrastructure();
   await _initializeServices();
+
+  try {
+    await MobileAds.instance.initialize();
+  } catch (_) {
+    // Ads are optional; never let ad failures break the app.
+  }
 
   runApp(const ProviderScope(child: SecurePassApp()));
 }
@@ -115,7 +123,9 @@ Future<void> _initializeInfrastructure() async {
   perfTracker.recordTiming('infrastructure_init', 'startup', startupStopwatch);
   observability.recordStartup('Infrastructure', startupStopwatch.elapsed);
 
-  logger.info('V2 infrastructure initialized in ${startupStopwatch.elapsedMilliseconds}ms');
+  logger.info(
+    'V2 infrastructure initialized in ${startupStopwatch.elapsedMilliseconds}ms',
+  );
 }
 
 Future<void> _initializeServices() async {
@@ -129,93 +139,222 @@ Future<void> _initializeServices() async {
   final servicesStopwatch = Stopwatch()..start();
 
   await PreferencesStorage.instance.init();
-  serviceRegistry.register('preferences_storage', PreferencesStorage.instance, description: 'SharedPreferences wrapper');
+  serviceRegistry.register(
+    'preferences_storage',
+    PreferencesStorage.instance,
+    description: 'SharedPreferences wrapper',
+  );
   await AppConfigManager.instance.load();
-  serviceRegistry.register('app_config', AppConfigManager.instance, description: 'App configuration manager');
+  serviceRegistry.register(
+    'app_config',
+    AppConfigManager.instance,
+    description: 'App configuration manager',
+  );
 
   await ConfigurationService.instance.initialize();
-  serviceRegistry.register('configuration', ConfigurationService.instance, description: 'Configuration service');
+  serviceRegistry.register(
+    'configuration',
+    ConfigurationService.instance,
+    description: 'Configuration service',
+  );
 
   await SettingsService.instance.initialize();
-  serviceRegistry.register('settings', SettingsService.instance, description: 'Settings service');
+  serviceRegistry.register(
+    'settings',
+    SettingsService.instance,
+    description: 'Settings service',
+  );
 
   LoggingService.instance.initialize();
-  serviceRegistry.register('logging', LoggingService.instance, description: 'Logging service');
+  serviceRegistry.register(
+    'logging',
+    LoggingService.instance,
+    description: 'Logging service',
+  );
 
   await StorageService.instance.initialize();
-  serviceRegistry.register('storage', StorageService.instance, description: 'Storage service', dependencies: ['preferences_storage']);
+  serviceRegistry.register(
+    'storage',
+    StorageService.instance,
+    description: 'Storage service',
+    dependencies: ['preferences_storage'],
+  );
 
   await EncryptionService.instance.initialize();
-  serviceRegistry.register('encryption', EncryptionService.instance, description: 'Encryption service');
+  serviceRegistry.register(
+    'encryption',
+    EncryptionService.instance,
+    description: 'Encryption service',
+  );
 
   await HistoryService().initialize();
-  serviceRegistry.register('history', HistoryService(), description: 'History service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'history',
+    HistoryService(),
+    description: 'History service',
+    dependencies: ['storage'],
+  );
 
   await FavoritesService().initialize();
-  serviceRegistry.register('favorites', FavoritesService(), description: 'Favorites service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'favorites',
+    FavoritesService(),
+    description: 'Favorites service',
+    dependencies: ['storage'],
+  );
 
   await RecipeService().initialize();
-  serviceRegistry.register('recipes', RecipeService(), description: 'Recipe service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'recipes',
+    RecipeService(),
+    description: 'Recipe service',
+    dependencies: ['storage'],
+  );
 
   await TagService().initialize();
-  serviceRegistry.register('tags', TagService(), description: 'Tag service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'tags',
+    TagService(),
+    description: 'Tag service',
+    dependencies: ['storage'],
+  );
 
   await StatisticsService().initialize();
-  serviceRegistry.register('statistics', StatisticsService(), description: 'Statistics service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'statistics',
+    StatisticsService(),
+    description: 'Statistics service',
+    dependencies: ['storage'],
+  );
 
   await WorkspaceService.instance.initialize();
-  serviceRegistry.register('workspace', WorkspaceService.instance, description: 'Workspace service', dependencies: ['storage']);
+  serviceRegistry.register(
+    'workspace',
+    WorkspaceService.instance,
+    description: 'Workspace service',
+    dependencies: ['storage'],
+  );
 
   await PrivacyService.instance.initialize();
-  serviceRegistry.register('privacy', PrivacyService.instance, description: 'Privacy service', dependencies: ['configuration']);
+  serviceRegistry.register(
+    'privacy',
+    PrivacyService.instance,
+    description: 'Privacy service',
+    dependencies: ['configuration'],
+  );
 
   await SecurityService.instance.initialize();
-  serviceRegistry.register('security', SecurityService.instance, description: 'Security service', dependencies: ['configuration']);
+  serviceRegistry.register(
+    'security',
+    SecurityService.instance,
+    description: 'Security service',
+    dependencies: ['configuration'],
+  );
 
   await DiagnosticsService.instance.initialize();
-  serviceRegistry.register('diagnostics', DiagnosticsService.instance, description: 'Diagnostics service', dependencies: ['configuration', 'security']);
+  serviceRegistry.register(
+    'diagnostics',
+    DiagnosticsService.instance,
+    description: 'Diagnostics service',
+    dependencies: ['configuration', 'security'],
+  );
 
   NotificationService.instance.initialize();
-  serviceRegistry.register('notifications', NotificationService.instance, description: 'Notification service');
+  serviceRegistry.register(
+    'notifications',
+    NotificationService.instance,
+    description: 'Notification service',
+  );
 
   await PasswordPolicyService.instance.initialize();
-  serviceRegistry.register('password_policy', PasswordPolicyService.instance, description: 'Password policy service');
+  serviceRegistry.register(
+    'password_policy',
+    PasswordPolicyService.instance,
+    description: 'Password policy service',
+  );
 
   PasswordAnalysisService.instance.initialize();
-  serviceRegistry.register('password_analysis', PasswordAnalysisService.instance, description: 'Password analysis service', dependencies: ['password_policy']);
+  serviceRegistry.register(
+    'password_analysis',
+    PasswordAnalysisService.instance,
+    description: 'Password analysis service',
+    dependencies: ['password_policy'],
+  );
 
   SearchService.instance.initialize();
-  serviceRegistry.register('search', SearchService.instance, description: 'Search service');
+  serviceRegistry.register(
+    'search',
+    SearchService.instance,
+    description: 'Search service',
+  );
 
   CommandService.instance.initialize();
-  serviceRegistry.register('commands', CommandService.instance, description: 'Command service');
+  serviceRegistry.register(
+    'commands',
+    CommandService.instance,
+    description: 'Command service',
+  );
 
   await ProductivityService.instance.initialize();
-  serviceRegistry.register('productivity', ProductivityService.instance, description: 'Productivity service');
+  serviceRegistry.register(
+    'productivity',
+    ProductivityService.instance,
+    description: 'Productivity service',
+  );
 
   await ExportService.instance.initialize();
-  serviceRegistry.register('export', ExportService.instance, description: 'Export service');
+  serviceRegistry.register(
+    'export',
+    ExportService.instance,
+    description: 'Export service',
+  );
 
   await ImportService.instance.initialize();
-  serviceRegistry.register('import', ImportService.instance, description: 'Import service');
+  serviceRegistry.register(
+    'import',
+    ImportService.instance,
+    description: 'Import service',
+  );
 
   await QrService.instance.initialize();
   serviceRegistry.register('qr', QrService.instance, description: 'QR service');
 
   await BackupService.instance.initialize();
-  serviceRegistry.register('backup', BackupService.instance, description: 'Backup service', dependencies: ['configuration', 'workspace']);
+  serviceRegistry.register(
+    'backup',
+    BackupService.instance,
+    description: 'Backup service',
+    dependencies: ['configuration', 'workspace'],
+  );
 
   PluginService.instance.initialize();
-  serviceRegistry.register('plugins', PluginService.instance, description: 'Plugin service');
+  serviceRegistry.register(
+    'plugins',
+    PluginService.instance,
+    description: 'Plugin service',
+  );
 
   LifecycleService.instance.initialize();
-  serviceRegistry.register('lifecycle', LifecycleService.instance, description: 'App lifecycle service');
+  serviceRegistry.register(
+    'lifecycle',
+    LifecycleService.instance,
+    description: 'App lifecycle service',
+  );
 
   await UpdateService.instance.initialize();
-  serviceRegistry.register('update', UpdateService.instance, description: 'Update service');
+  serviceRegistry.register(
+    'update',
+    UpdateService.instance,
+    description: 'Update service',
+  );
 
   RestoreService.instance.initialize();
-  serviceRegistry.register('restore', RestoreService.instance, description: 'Restore service', dependencies: ['configuration', 'workspace']);
+  serviceRegistry.register(
+    'restore',
+    RestoreService.instance,
+    description: 'Restore service',
+    dependencies: ['configuration', 'workspace'],
+  );
 
   servicesStopwatch.stop();
   perfTracker.recordTiming('services_init', 'startup', servicesStopwatch);
@@ -223,7 +362,9 @@ Future<void> _initializeServices() async {
 
   _registerModules();
 
-  logger.info('All services initialized successfully in ${servicesStopwatch.elapsedMilliseconds}ms');
+  logger.info(
+    'All services initialized successfully in ${servicesStopwatch.elapsedMilliseconds}ms',
+  );
 }
 
 void _registerModules() {
@@ -359,9 +500,9 @@ class SecurePassApp extends ConsumerWidget {
       routerConfig: router,
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.noScaling,
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.noScaling),
           child: child ?? const SizedBox.shrink(),
         );
       },

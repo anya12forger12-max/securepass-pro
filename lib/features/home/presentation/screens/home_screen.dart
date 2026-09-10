@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
+import 'package:securepass_pro/shared/widgets/ad_banner.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -8,60 +9,68 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome to ${AppConstants.appName}',
-            style: theme.textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppConstants.appDescription,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome to ${AppConstants.appName}',
+              style: theme.textTheme.headlineMedium,
             ),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: MediaQuery.of(context).size.width > 1024
-                  ? 3
-                  : 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              children: [
-                _FeatureCard(
-                  icon: Icons.password,
-                  title: 'Password Generator',
-                  description: 'Generate secure random passwords',
-                  onTap: () => Navigator.of(context).pushNamed('/password-generator'),
-                ),
-                _FeatureCard(
-                  icon: Icons.chat,
-                  title: 'Passphrase Generator',
-                  description: 'Create memorable passphrases',
-                  onTap: () => Navigator.of(context).pushNamed('/passphrase-generator'),
-                ),
-                _FeatureCard(
-                  icon: Icons.pin,
-                  title: 'PIN Generator',
-                  description: 'Generate secure PIN codes',
-                  onTap: () => Navigator.of(context).pushNamed('/pin-generator'),
-                ),
-                _FeatureCard(
-                  icon: Icons.fingerprint,
-                  title: 'UUID Generator',
-                  description: 'Generate unique identifiers',
-                  onTap: () => Navigator.of(context).pushNamed('/uuid-generator'),
-                ),
-              ],
+            const SizedBox(height: 8),
+            Text(
+              AppConstants.appDescription,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: MediaQuery.of(context).size.width > 1024
+                    ? 3
+                    : 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                children: [
+                  _FeatureCard(
+                    icon: Icons.password,
+                    title: 'Password Generator',
+                    description: 'Generate secure random passwords',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/password-generator'),
+                  ),
+                  _FeatureCard(
+                    icon: Icons.chat,
+                    title: 'Passphrase Generator',
+                    description: 'Create memorable passphrases',
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pushNamed('/passphrase-generator'),
+                  ),
+                  _FeatureCard(
+                    icon: Icons.pin,
+                    title: 'PIN Generator',
+                    description: 'Generate secure PIN codes',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/pin-generator'),
+                  ),
+                  _FeatureCard(
+                    icon: Icons.fingerprint,
+                    title: 'UUID Generator',
+                    description: 'Generate unique identifiers',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/uuid-generator'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+      bottomNavigationBar: const AdBanner(),
     );
   }
 }
