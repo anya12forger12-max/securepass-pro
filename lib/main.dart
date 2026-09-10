@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:securepass_pro/navigation/app_router.dart';
 import 'package:securepass_pro/themes/theme_state.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
@@ -70,12 +69,6 @@ void main() async {
 
   await _initializeInfrastructure();
   await _initializeServices();
-
-  try {
-    await MobileAds.instance.initialize();
-  } catch (_) {
-    // Ads are optional; never let ad failures break the app.
-  }
 
   runApp(const ProviderScope(child: SecurePassApp()));
 }
