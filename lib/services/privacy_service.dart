@@ -69,6 +69,14 @@ class PrivacyService {
 
   bool isOfflineMode() => _offlineMode;
 
+  /// Whether the user has explicitly opted in to ad serving.
+  ///
+  /// Ads (AdMob, which transmits the Advertising ID alongside ad requests)
+  /// are only shown when analytics sharing is enabled and offline mode is
+  /// disabled. Defaults are privacy-first (no analytics, offline on), so
+  /// ads are off unless the user opts in.
+  bool isAdsAllowed() => _analyticsEnabled && !_offlineMode;
+
   Future<void> setTelemetry(bool enabled) async {
     _telemetryEnabled = enabled;
     await PreferencesStorage.instance.setBool(_telemetryKey, enabled);

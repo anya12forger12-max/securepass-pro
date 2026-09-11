@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:securepass_pro/services/privacy_service.dart';
 
 /// Adaptive banner ad shown at the bottom of the home screen.
 ///
 /// Uses the real AdMob banner unit for securepass-pro.
+///
+/// Ads are only loaded when the user has explicitly enabled analytics
+/// data sharing in Privacy settings (default is off, matching the app's
+/// privacy-first defaults). Disabling analytics/offline mode in Privacy
+/// settings stops ad requests entirely.
 class AdBanner extends StatefulWidget {
   const AdBanner({super.key});
 
@@ -21,7 +27,16 @@ class _AdBannerState extends State<AdBanner> {
   @override
   void initState() {
     super.initState();
-    _loadBanner();
+    _maybeLoadBanner();
+  }
+
+  Future<void> _maybeLoadBanner() async {
+    await PrivacyService.instance.initialize();
+    if (!PrivacyService.instance.isAdsAllowed()) {
+      // Privacy-first: no explicit opt-in for analytics/ads, show no banner.
+      return;
+    }
+    await _loadBanner();
   }
 
   Future<void> _loadBanner() async {

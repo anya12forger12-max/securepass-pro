@@ -4,7 +4,7 @@ import 'package:securepass_pro/domain/entities/history_entry.dart';
 import 'package:securepass_pro/domain/entities/statistics_data.dart';
 import 'package:securepass_pro/domain/enums/generator_type.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
-import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
+import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 
 class HistoryService {
   static final HistoryService _instance = HistoryService._();
@@ -23,30 +23,30 @@ class HistoryService {
   int get maxEntries => _maxEntries;
 
   Future<void> initialize() async {
-    _load();
-    _pruneExpired();
+    await _load();
+    await _pruneExpired();
     AppLogger.instance.info(
       'HistoryService initialized with ${_entries.length} entries',
       category: 'HistoryService',
     );
   }
 
-  void setEnabled(bool enabled) {
+  Future<void> setEnabled(bool enabled) async {
     _isEnabled = enabled;
-    _save();
+    await _save();
     AppLogger.instance.debug(
       'History ${enabled ? "enabled" : "disabled"}',
       category: 'HistoryService',
     );
   }
 
-  void setMaxEntries(int max) {
+  Future<void> setMaxEntries(int max) async {
     _maxEntries = max;
     _trimToMax();
-    _save();
+    await _save();
   }
 
-  void addEntry(HistoryEntry entry) {
+  Future<void> addEntry(HistoryEntry entry) async {
     if (!_isEnabled) {
       AppLogger.instance.debug(
         'History disabled, skipping entry',
@@ -57,18 +57,18 @@ class HistoryService {
 
     _entries.insert(0, entry);
     _trimToMax();
-    _save();
+    await _save();
     AppLogger.instance.debug(
       'Added history entry ${entry.id}',
       category: 'HistoryService',
     );
   }
 
-  void removeEntry(String id) {
+  Future<void> removeEntry(String id) async {
     final beforeLength = _entries.length;
     _entries.removeWhere((e) => e.id == id);
     if (_entries.length < beforeLength) {
-      _save();
+      await _save();
       AppLogger.instance.debug(
         'Removed history entry $id',
         category: 'HistoryService',
@@ -76,19 +76,19 @@ class HistoryService {
     }
   }
 
-  void bulkRemove(List<String> ids) {
+  Future<void> bulkRemove(List<String> ids) async {
     final idSet = ids.toSet();
     _entries.removeWhere((e) => idSet.contains(e.id));
-    _save();
+    await _save();
     AppLogger.instance.debug(
       'Bulk removed ${ids.length} history entries',
       category: 'HistoryService',
     );
   }
 
-  void clearAll() {
+  Future<void> clearAll() async {
     _entries.clear();
-    _save();
+    await _save();
     AppLogger.instance.info(
       'Cleared all history entries',
       category: 'HistoryService',
@@ -229,7 +229,7 @@ class HistoryService {
     }
 
     _trimToMax();
-    _save();
+    await _save();
     AppLogger.instance.info(
       'Imported ${_entries.length} history entries',
       category: 'HistoryService',
@@ -242,7 +242,7 @@ class HistoryService {
     }
   }
 
-  void _pruneExpired() {
+  Future<void> _pruneExpired() async {
     final now = DateTime.now();
     final beforeCount = _entries.length;
     _entries.removeWhere(
@@ -253,14 +253,14 @@ class HistoryService {
         'Pruned $removedCount expired history entries',
         category: 'HistoryService',
       );
-      _save();
+      await _save();
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
     try {
       final data = jsonEncode(exportAsMap());
-      PreferencesStorage.instance.setString(_storageKey, data);
+      await EncryptedStorage.instance.store(_storageKey, data);
     } catch (e) {
       AppLogger.instance.error(
         'Failed to save history: $e',
@@ -269,9 +269,9 @@ class HistoryService {
     }
   }
 
-  void _load() {
+  Future<void> _load() async {
     try {
-      final data = PreferencesStorage.instance.getString(_storageKey);
+      final data = await EncryptedStorage.instance.retrieve(_storageKey);
       if (data == null || data.isEmpty) return;
 
       final json = jsonDecode(data) as Map<String, dynamic>;
