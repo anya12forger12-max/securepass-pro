@@ -61,17 +61,6 @@ abstract final class SecureMemory {
     return result == 0;
   }
 
-  static String generateRandomString(int length) {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = List<String>.generate(
-      length,
-      (_) => charset[DateTime.now().microsecondsSinceEpoch % charset.length],
-    );
-    final result = random.join();
-    wipeList(random);
-    return result;
-  }
-
   static List<int> toSecureBytes(String data) {
     final bytes = List<int>.from(data.codeUnits);
     return bytes;

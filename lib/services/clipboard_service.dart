@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:securepass_pro/core/security/clipboard_service.dart' as core;
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/services/lifecycle_service.dart';
 
 class ClipboardStatus {
   const ClipboardStatus({
@@ -31,6 +33,7 @@ class EnhancedClipboardService {
   int _operationCount = 0;
   DateTime? _lastCopyTime;
   DateTime? _lastClearTime;
+  DateTime? _autoClearDeadline;
 
   Future<void> initialize({
     int autoClearDuration = 30,
@@ -42,6 +45,7 @@ class EnhancedClipboardService {
     _coreClipboard = core.ClipboardService(
       defaultAutoClearDuration: Duration(seconds: autoClearDuration),
     );
+    LifecycleService.instance.addListener(_handleLifecycleChange);
     _initialized = true;
     AppLogger.instance.info('Enhanced clipboard service initialized', category: 'CLIPBOARD');
   }
@@ -55,6 +59,7 @@ class EnhancedClipboardService {
       _operationCount++;
       _lastCopyTime = DateTime.now();
       _autoClearEnabled = autoClear;
+      _autoClearDeadline = duration != null ? DateTime.now().add(duration) : null;
       AppLogger.instance.debug('Clipboard: text copied (autoClear: $autoClear)', category: 'CLIPBOARD');
     }
     return result;
@@ -70,6 +75,7 @@ class EnhancedClipboardService {
       _operationCount++;
       _lastCopyTime = DateTime.now();
       _autoClearEnabled = true;
+      _autoClearDeadline = DateTime.now().add(Duration(seconds: durationSeconds));
     }
     return result;
   }
@@ -82,6 +88,7 @@ class EnhancedClipboardService {
     final result = await _coreClipboard.clearClipboard();
     if (result) {
       _lastClearTime = DateTime.now();
+      _autoClearDeadline = null;
       AppLogger.instance.debug('Clipboard cleared manually', category: 'CLIPBOARD');
     }
     return result;
@@ -123,6 +130,26 @@ class EnhancedClipboardService {
     };
   }
 
+  void _handleLifecycleChange(AppLifecycleState state) {
+    if (!_coreClipboard.hasActiveContent || _autoClearDeadline == null) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        final remaining = _autoClearDeadline!.difference(DateTime.now());
+        if (remaining <= Duration.zero) {
+          unawaited(clear());
+        } else {
+          _coreClipboard.rearmAutoClear(remaining);
+        }
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+        unawaited(clear());
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
   void startMonitoring() {
     _monitoringEnabled = true;
     _monitoringTimer?.cancel();
@@ -143,5 +170,7 @@ class EnhancedClipboardService {
 
   void dispose() {
     stopMonitoring();
+    LifecycleService.instance.removeListener(_handleLifecycleChange);
+    _autoClearDeadline = null;
   }
 }

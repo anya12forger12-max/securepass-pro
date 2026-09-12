@@ -70,6 +70,13 @@ class ClipboardService {
     _autoClearTimer = null;
   }
 
+  /// Re-arms the pending auto-clear with a fresh duration. No-op when there is
+  /// no active clipboard content to clear.
+  void rearmAutoClear(Duration duration) {
+    if (!_hasActiveContent) return;
+    _scheduleAutoClear(duration);
+  }
+
   void dispose() {
     _autoClearTimer?.cancel();
     _autoClearTimer = null;

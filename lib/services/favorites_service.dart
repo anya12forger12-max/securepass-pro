@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:securepass_pro/domain/entities/favorite_item.dart';
 import 'package:securepass_pro/domain/enums/generator_type.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 
+/// Favorites are persisted keystore-encrypted via [EncryptedStorage];
+/// favorites remain in memory only while the app process is alive.
 class FavoritesService {
   static final FavoritesService _instance = FavoritesService._();
 
@@ -19,7 +23,7 @@ class FavoritesService {
   int get count => _favorites.length;
 
   Future<void> initialize() async {
-    _load();
+    await _load();
     AppLogger.instance.info(
       'FavoritesService initialized with ${_favorites.length} favorites',
       category: 'FavoritesService',
@@ -37,7 +41,7 @@ class FavoritesService {
     }
 
     _favorites.insert(0, item);
-    _save();
+    unawaited(_save());
     AppLogger.instance.debug(
       'Added favorite ${item.id}',
       category: 'FavoritesService',
@@ -48,7 +52,7 @@ class FavoritesService {
     final beforeLength = _favorites.length;
     _favorites.removeWhere((f) => f.id == id);
     if (_favorites.length < beforeLength) {
-      _save();
+      unawaited(_save());
       AppLogger.instance.debug(
         'Removed favorite $id',
         category: 'FavoritesService',
@@ -94,7 +98,7 @@ class FavoritesService {
 
   void clearFavorites() {
     _favorites.clear();
-    _save();
+    unawaited(_save());
     AppLogger.instance.info(
       'Cleared all favorites',
       category: 'FavoritesService',
@@ -125,7 +129,7 @@ class FavoritesService {
       }
     }
 
-    _save();
+    await _save();
     AppLogger.instance.info(
       'Imported ${_favorites.length} favorites',
       category: 'FavoritesService',
@@ -159,10 +163,10 @@ class FavoritesService {
     );
   }
 
-  void _save() {
+  Future<void> _save() async {
     try {
       final data = jsonEncode(exportAsMap());
-      PreferencesStorage.instance.setString(_storageKey, data);
+      await EncryptedStorage.instance.store(_storageKey, data);
     } catch (e) {
       AppLogger.instance.error(
         'Failed to save favorites: $e',
@@ -171,10 +175,16 @@ class FavoritesService {
     }
   }
 
-  void _load() {
+  Future<void> _load() async {
     try {
-      final data = PreferencesStorage.instance.getString(_storageKey);
-      if (data == null || data.isEmpty) return;
+      var data = await EncryptedStorage.instance.retrieve(_storageKey);
+      if (data == null || data.isEmpty) {
+        final legacyData = PreferencesStorage.instance.getString(_storageKey);
+        if (legacyData == null || legacyData.isEmpty) return;
+        await EncryptedStorage.instance.store(_storageKey, legacyData);
+        await PreferencesStorage.instance.remove(_storageKey);
+        data = legacyData;
+      }
 
       final json = jsonDecode(data) as Map<String, dynamic>;
       final favoritesJson = json['favorites'] as List<dynamic>?;

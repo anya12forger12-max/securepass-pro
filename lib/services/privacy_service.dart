@@ -105,16 +105,16 @@ class PrivacyService {
       ),
       PrivacyDataCategory(
         name: 'Usage History',
-        description: 'Tracks which features are used',
-        isStored: false,
-        canBeCleared: false,
+        description: 'Tracks which features are used (keystore-encrypted storage)',
+        isStored: true,
+        canBeCleared: true,
         count: 0,
       ),
       PrivacyDataCategory(
         name: 'Generated Passwords',
-        description: 'Previously generated passwords',
-        isStored: false,
-        canBeCleared: false,
+        description: 'Previously generated passwords (keystore-encrypted storage)',
+        isStored: true,
+        canBeCleared: true,
         count: 0,
       ),
       PrivacyDataCategory(
