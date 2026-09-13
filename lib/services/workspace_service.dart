@@ -29,15 +29,22 @@ class WorkspaceService {
       try {
         final list = jsonDecode(data) as List;
         for (final item in list) {
-          final map = item as Map<String, dynamic>;
-          _workspaces.add(WorkspaceMetadata(
-            id: map['id'] as String,
-            name: map['name'] as String,
-            description: map['description'] as String? ?? '',
-            createdAt: DateTime.parse(map['createdAt'] as String),
-            updatedAt: DateTime.parse(map['updatedAt'] as String),
-            isActive: map['isActive'] as bool? ?? false,
-          ));
+          try {
+            final map = item as Map<String, dynamic>;
+            _workspaces.add(WorkspaceMetadata(
+              id: map['id'] as String,
+              name: map['name'] as String,
+              description: map['description'] as String? ?? '',
+              createdAt: DateTime.parse(map['createdAt'] as String),
+              updatedAt: DateTime.parse(map['updatedAt'] as String),
+              isActive: map['isActive'] as bool? ?? false,
+            ));
+          } catch (e) {
+            AppLogger.instance.warning(
+              'Skipping malformed workspace entry: $e',
+              category: 'WORKSPACE',
+            );
+          }
         }
       } catch (e) {
         AppLogger.instance.error('Failed to load workspaces', category: 'WORKSPACE');
@@ -121,8 +128,11 @@ class WorkspaceService {
     AppLogger.instance.debug('Workspace renamed: $id -> $name', category: 'WORKSPACE');
   }
 
-  Future<Map<String, dynamic>> exportWorkspace(String id) async {
-    final workspace = _workspaces.firstWhere((w) => w.id == id);
+  Future<Map<String, dynamic>?> exportWorkspace(String id) async {
+    final WorkspaceMetadata? workspace = _workspaces
+        .cast<WorkspaceMetadata?>()
+        .firstWhere((w) => w?.id == id, orElse: () => null);
+    if (workspace == null) return null;
     return {
       'workspace': workspace.toMap(),
       'exportedAt': DateTime.now().toIso8601String(),

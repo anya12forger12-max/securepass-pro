@@ -24,7 +24,7 @@ class EnhancedClipboardService {
   static final EnhancedClipboardService _instance = EnhancedClipboardService._();
   static EnhancedClipboardService get instance => _instance;
 
-  late core.ClipboardService _coreClipboard;
+  core.ClipboardService? _lazyCoreClipboard;
   bool _initialized = false;
   bool _monitoringEnabled = false;
   bool _autoClearEnabled = true;
@@ -35,6 +35,10 @@ class EnhancedClipboardService {
   DateTime? _lastClearTime;
   DateTime? _autoClearDeadline;
 
+  core.ClipboardService get _coreClipboard => _lazyCoreClipboard ??= core.ClipboardService(
+        defaultAutoClearDuration: Duration(seconds: _autoClearDurationSeconds),
+      );
+
   Future<void> initialize({
     int autoClearDuration = 30,
     bool monitoring = false,
@@ -42,9 +46,6 @@ class EnhancedClipboardService {
     if (_initialized) return;
     _autoClearDurationSeconds = autoClearDuration;
     _monitoringEnabled = monitoring;
-    _coreClipboard = core.ClipboardService(
-      defaultAutoClearDuration: Duration(seconds: autoClearDuration),
-    );
     LifecycleService.instance.addListener(_handleLifecycleChange);
     _initialized = true;
     AppLogger.instance.info('Enhanced clipboard service initialized', category: 'CLIPBOARD');
@@ -171,6 +172,7 @@ class EnhancedClipboardService {
   void dispose() {
     stopMonitoring();
     LifecycleService.instance.removeListener(_handleLifecycleChange);
+    _lazyCoreClipboard?.cancelAutoClear();
     _autoClearDeadline = null;
   }
 }

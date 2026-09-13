@@ -6,6 +6,15 @@ import 'package:cryptography/cryptography.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 
+class EncryptionException implements Exception {
+  const EncryptionException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'EncryptionException: $message';
+}
+
 class EncryptionService {
   EncryptionService._();
   static final EncryptionService _instance = EncryptionService._();
@@ -21,16 +30,27 @@ class EncryptionService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    final storedKey = await EncryptedStorage.instance.retrieve(_keyStorageKey);
-    if (storedKey != null && storedKey.isNotEmpty) {
-      _currentKey = SecretKey(base64Decode(storedKey));
-    } else {
-      final key = await _aesGcm.newSecretKey();
-      _currentKey = key;
-      await EncryptedStorage.instance.store(
-        _keyStorageKey,
-        base64Encode(await key.extractBytes()),
+    try {
+      final storedKey = await EncryptedStorage.instance.retrieve(_keyStorageKey);
+      if (storedKey != null && storedKey.isNotEmpty) {
+        _currentKey = SecretKey(base64Decode(storedKey));
+      } else {
+        await _createAndPersistKey();
+      }
+    } catch (e) {
+      AppLogger.instance.warning(
+        'Failed to restore encryption key, regenerating: $e',
+        category: 'ENCRYPTION',
       );
+      _currentKey = null;
+      try {
+        await _createAndPersistKey();
+      } catch (writeError) {
+        AppLogger.instance.error(
+          'Failed to persist a new encryption key: $writeError',
+          category: 'ENCRYPTION',
+        );
+      }
     }
 
     _initialized = true;
@@ -40,12 +60,31 @@ class EncryptionService {
     );
   }
 
-  Future<String> encrypt(String plaintext) async {
-    final key = _requireKey();
-    final box = await _aesGcm.encrypt(utf8.encode(plaintext), secretKey: key);
-    return base64Encode(box.concatenation());
+  Future<void> _createAndPersistKey() async {
+    final key = await _aesGcm.newSecretKey();
+    _currentKey = key;
+    await EncryptedStorage.instance.store(
+      _keyStorageKey,
+      base64Encode(await key.extractBytes()),
+    );
   }
 
+  Future<String> encrypt(String plaintext) async {
+    final key = _requireKey();
+    try {
+      final box = await _aesGcm.encrypt(utf8.encode(plaintext), secretKey: key);
+      return base64Encode(box.concatenation());
+    } catch (e) {
+      throw EncryptionException('Encryption failed: $e');
+    }
+  }
+
+  /// Decrypts [ciphertext] and returns the plaintext.
+  ///
+  /// Returns an empty string when authentication fails, the ciphertext is
+  /// malformed, or decryption errors in any other way — this is
+  /// indistinguishable from a legitimately empty plaintext. Callers must
+  /// treat an empty result as a failure signal.
   Future<String> decrypt(String ciphertext) async {
     try {
       final key = _requireKey();
@@ -77,11 +116,12 @@ class EncryptionService {
   }
 
   SecretKey _requireKey() {
-    if (_currentKey == null) {
-      throw StateError(
+    final key = _currentKey;
+    if (key == null) {
+      throw const EncryptionException(
         'Encryption service not initialized. Call initialize() first.',
       );
     }
-    return _currentKey!;
+    return key;
   }
 }

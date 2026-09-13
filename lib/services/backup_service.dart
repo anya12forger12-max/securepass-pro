@@ -31,19 +31,26 @@ class BackupService {
       try {
         final list = jsonDecode(data) as List;
         for (final item in list) {
-          final map = item as Map<String, dynamic>;
-          _backups.add(BackupMetadata(
-            id: map['id'] as String,
-            name: map['name'] as String,
-            version: map['version'] as String,
-            sizeBytes: map['sizeBytes'] as int,
-            createdAt: DateTime.parse(map['createdAt'] as String),
-            status: BackupStatus.values.firstWhere(
-              (e) => e.name == map['status'],
-              orElse: () => BackupStatus.pending,
-            ),
-            isEncrypted: map['isEncrypted'] as bool? ?? false,
-          ));
+          try {
+            final map = item as Map<String, dynamic>;
+            _backups.add(BackupMetadata(
+              id: map['id'] as String,
+              name: map['name'] as String,
+              version: map['version'] as String,
+              sizeBytes: map['sizeBytes'] as int,
+              createdAt: DateTime.parse(map['createdAt'] as String),
+              status: BackupStatus.values.firstWhere(
+                (e) => e.name == map['status'],
+                orElse: () => BackupStatus.pending,
+              ),
+              isEncrypted: map['isEncrypted'] as bool? ?? false,
+            ));
+          } catch (e) {
+            AppLogger.instance.warning(
+              'Skipping malformed backup entry: $e',
+              category: 'BACKUP',
+            );
+          }
         }
       } catch (e) {
         AppLogger.instance.error('Failed to load backups', category: 'BACKUP');
@@ -112,8 +119,11 @@ class BackupService {
     AppLogger.instance.info('Backup deleted: $id', category: 'BACKUP');
   }
 
-  Future<Map<String, dynamic>> exportBackup(String id) async {
-    final backup = _backups.firstWhere((b) => b.id == id);
+  Future<Map<String, dynamic>?> exportBackup(String id) async {
+    final BackupMetadata? backup = _backups
+        .cast<BackupMetadata?>()
+        .firstWhere((b) => b?.id == id, orElse: () => null);
+    if (backup == null) return null;
     final exportData = <String, dynamic>{
       'metadata': {
         'id': backup.id,

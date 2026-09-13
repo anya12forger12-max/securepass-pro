@@ -67,9 +67,10 @@ class CharGenerator {
 
     final remaining = length - mandatoryChars.length;
     if (remaining < 0) {
-      throw ArgumentError(
-        'Length $length is too short for ${charsets.length} required charset groups',
-      );
+      final rest = string(length, combined.toString());
+      final result = [...rest.split('')];
+      _random.shuffle(result);
+      return result.join();
     }
 
     final rest = string(remaining, combined.toString());

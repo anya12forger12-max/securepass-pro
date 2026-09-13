@@ -89,9 +89,18 @@ class PrivacyService {
     AppLogger.instance.info('Analytics set to: $enabled', category: 'PRIVACY');
   }
 
-  Future<void> clearAllLocalData() async {
-    await StorageService.instance.clear();
-    AppLogger.instance.info('All local data cleared', category: 'PRIVACY');
+  Future<bool> clearAllLocalData() async {
+    try {
+      await StorageService.instance.clear();
+      AppLogger.instance.info('All local data cleared', category: 'PRIVACY');
+      return true;
+    } catch (e) {
+      AppLogger.instance.error(
+        'Failed to clear all local data: $e',
+        category: 'PRIVACY',
+      );
+      return false;
+    }
   }
 
   List<PrivacyDataCategory> getDataCategories() {

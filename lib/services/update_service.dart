@@ -69,7 +69,12 @@ class UpdateService {
           checkAutomatically: map['checkAutomatically'] as bool? ?? false,
           includePreReleases: map['includePreReleases'] as bool? ?? false,
         );
-      } catch (_) {}
+      } catch (e) {
+        AppLogger.instance.warning(
+          'Failed to load update settings: $e',
+          category: 'UPDATE',
+        );
+      }
     }
 
     final historyJson = PreferencesStorage.instance.getString(_historyKey);
@@ -84,7 +89,12 @@ class UpdateService {
             changelog: map['changelog'] as String?,
           ));
         }
-      } catch (_) {}
+      } catch (e) {
+        AppLogger.instance.warning(
+          'Failed to load update history: $e',
+          category: 'UPDATE',
+        );
+      }
     }
   }
 

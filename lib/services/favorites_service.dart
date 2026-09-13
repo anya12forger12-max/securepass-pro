@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:securepass_pro/domain/entities/favorite_item.dart';
 import 'package:securepass_pro/domain/enums/generator_type.dart';
@@ -165,7 +166,8 @@ class FavoritesService {
 
   Future<void> _save() async {
     try {
-      final data = jsonEncode(exportAsMap());
+      final exportMap = exportAsMap();
+      final data = await Isolate.run(() => jsonEncode(exportMap));
       await EncryptedStorage.instance.store(_storageKey, data);
     } catch (e) {
       AppLogger.instance.error(
