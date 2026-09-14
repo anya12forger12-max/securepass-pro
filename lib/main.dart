@@ -33,6 +33,7 @@ import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/storage_service.dart';
 import 'package:securepass_pro/services/update_service.dart';
 import 'package:securepass_pro/services/restore_service.dart';
+import 'package:securepass_pro/services/vault_service.dart';
 
 import 'package:securepass_pro/infrastructure/event_bus/event_bus.dart';
 import 'package:securepass_pro/infrastructure/feature_flags/feature_flag_system.dart';
@@ -178,6 +179,15 @@ Future<void> _initializeServices() async {
     'encryption',
     EncryptionService.instance,
     description: 'Encryption service',
+  );
+
+  final vaultService = VaultService();
+  await vaultService.initialize();
+  serviceRegistry.register(
+    'vault',
+    vaultService,
+    description: 'Credential vault service',
+    dependencies: ['encryption'],
   );
 
   await HistoryService().initialize();

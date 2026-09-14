@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' hide Hmac;
+import 'package:cryptography/cryptography.dart';
 import 'package:securepass_pro/domain/entities/vault_entry.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
@@ -15,7 +16,11 @@ class VaultService {
   VaultService._();
 
   static const String _storageKey = 'vault_entries';
+  static const int _pbkdf2Iterations = 210000;
+  static const int _pbkdf2Bits = 256;
+  static const String _pbkdf2Prefix = 'pbkdf2:';
 
+  bool _initialized = false;
   final List<VaultEntry> _entries = [];
   final Set<String> _folders = {};
   bool _isLocked = true;
@@ -29,7 +34,9 @@ class VaultService {
   Set<String> get folders => Set.unmodifiable(_folders);
 
   Future<void> initialize() async {
+    if (_initialized) return;
     await _load();
+    _initialized = true;
     AppLogger.instance.info(
       'VaultService initialized with ${_entries.length} entries, ${_folders.length} folders',
       category: 'VaultService',
@@ -189,18 +196,28 @@ class VaultService {
     }
   }
 
-  void setVaultPin(String pin) {
-    _vaultPin = _hashPin(pin);
-    _save();
+  Future<void> setVaultPin(String pin) async {
+    _hashChars = _randomSalt();
+    _vaultPin = await _derivePbkdf2('$_hashChars:$pin');
+    await _persist();
     AppLogger.instance.info(
       'Vault PIN set',
       category: 'VaultService',
     );
   }
 
-  bool verifyVaultPin(String pin) {
-    if (_vaultPin == null) return false;
-    return _vaultPin == _hashPin(pin);
+  Future<bool> verifyVaultPin(String pin) async {
+    final stored = _vaultPin;
+    if (stored == null) return false;
+    final salt = _storedSalt;
+    if (salt == null) {
+      AppLogger.instance.warning(
+        'Vault not initialized: no salt persisted',
+        category: 'VaultService',
+      );
+      return false;
+    }
+    return _verifyPin(stored, pin, salt);
   }
 
   void setAutoLockSeconds(int seconds) {
@@ -217,8 +234,8 @@ class VaultService {
     );
   }
 
-  bool unlock(String pin) {
-    if (!verifyVaultPin(pin)) {
+  Future<bool> unlock(String pin) async {
+    if (!await verifyVaultPin(pin)) {
       AppLogger.instance.warning(
         'Failed unlock attempt',
         category: 'VaultService',
@@ -294,18 +311,53 @@ class VaultService {
     _folders.addAll(activeFolders);
   }
 
-  String _hashPin(String pin) {
-    final salt = _storedSalt;
-    return '${sha256.convert(utf8.encode('$salt:$pin')).toString()}';
+  Future<String> _derivePbkdf2(String password) async {
+    final pbkdf2 = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: _pbkdf2Iterations,
+      bits: _pbkdf2Bits,
+    );
+    final key = await pbkdf2.deriveKey(
+      secretKey: SecretKey(utf8.encode(password)),
+      nonce: utf8.encode(password),
+    );
+    final bytes = await key.extractBytes();
+    return '$_pbkdf2Prefix${base64Encode(bytes)}';
   }
 
-  String get _storedSalt {
-    final existing = _hashChars;
-    if (existing != null && existing.length == 16) return existing;
-    final randomSalt = _randomSalt();
-    _hashChars = randomSalt;
-    return randomSalt;
+  Future<bool> _verifyPin(
+    String stored,
+    String pin,
+    String salt,
+  ) async {
+    if (stored.startsWith(_pbkdf2Prefix)) {
+      final expectedB64 = stored.substring(_pbkdf2Prefix.length);
+      final derived = await _derivePbkdf2('$salt:$pin');
+      final derivedB64 = derived.substring(_pbkdf2Prefix.length);
+      return _constantTimeEquals(expectedB64, derivedB64);
+    }
+
+    final legacyHash =
+        sha256.convert(utf8.encode('$salt:$pin')).toString();
+    if (!_constantTimeEquals(stored.toLowerCase(), legacyHash)) {
+      return false;
+    }
+
+    _vaultPin = await _derivePbkdf2('$salt:$pin');
+    await _persist();
+    return true;
   }
+
+  bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) {
+      diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return diff == 0;
+  }
+
+  String? get _storedSalt => _hashChars;
 
   String _randomSalt() {
     final random = Random.secure();

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:securepass_pro/domain/entities/import_result.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/services/encryption_service.dart';
 
 class ImportService {
   ImportService._();
@@ -26,90 +27,24 @@ class ImportService {
     try {
       final decoded = jsonDecode(jsonStr);
 
-      Map<String, dynamic> data;
-      if (decoded is Map<String, dynamic>) {
-        if (decoded.containsKey('data') && decoded['data'] is Map) {
-          data = Map<String, dynamic>.from(decoded['data'] as Map);
-        } else {
-          data = decoded;
+      final encryptedData = _extractEnvelopeData(jsonStr, decoded);
+      if (encryptedData != null) {
+        final plain = await EncryptionService.instance.decrypt(encryptedData);
+        if (plain.isEmpty) {
+          return const ImportResult(
+            success: false,
+            totalItems: 0,
+            successfulItems: 0,
+            failedItems: 0,
+            importedItems: [],
+            errorMessage:
+                'Failed to decrypt encrypted import data: invalid or corrupted encryption',
+          );
         }
-      } else {
-        return const ImportResult(
-          success: false,
-          totalItems: 0,
-          successfulItems: 0,
-          failedItems: 0,
-          importedItems: [],
-          errorMessage: 'Invalid JSON structure: expected an object',
-        );
+        return _parseImport(jsonDecode(plain));
       }
 
-      if (!validateImportData(data)) {
-        return const ImportResult(
-          success: false,
-          totalItems: 0,
-          successfulItems: 0,
-          failedItems: 0,
-          importedItems: [],
-          errorMessage: 'Required data fields missing or invalid',
-        );
-      }
-
-      final importedItems = <ImportedItem>[];
-
-      if (data.containsKey('history') && data['history'] is List) {
-        importedItems.addAll(
-          _importHistory(data['history'] as List<dynamic>),
-        );
-      }
-
-      if (data.containsKey('favorites') && data['favorites'] is List) {
-        importedItems.addAll(
-          _importFavorites(data['favorites'] as List<dynamic>),
-        );
-      }
-
-      if (data.containsKey('vault') && data['vault'] is List) {
-        importedItems.addAll(
-          _importVault(data['vault'] as List<dynamic>),
-        );
-      }
-
-      if (data.containsKey('recipes') && data['recipes'] is List) {
-        importedItems.addAll(
-          _importRecipes(data['recipes'] as List<dynamic>),
-        );
-      }
-
-      if (data.containsKey('tags') && data['tags'] is List) {
-        importedItems.addAll(
-          _importTags(data['tags'] as List<dynamic>),
-        );
-      }
-
-      if (data.containsKey('settings') && data['settings'] is Map) {
-        importedItems.addAll(
-          _importSettings(data['settings'] as Map<String, dynamic>),
-        );
-      }
-
-      final successful = importedItems.where((i) => i.success).length;
-      final failed = importedItems.where((i) => !i.success).length;
-
-      _importCount++;
-
-      AppLogger.instance.info(
-        'Import completed: $successful successful, $failed failed',
-        category: 'ImportService',
-      );
-
-      return ImportResult(
-        success: failed == 0,
-        totalItems: importedItems.length,
-        successfulItems: successful,
-        failedItems: failed,
-        importedItems: importedItems,
-      );
+      return _parseImport(decoded);
     } catch (e) {
       AppLogger.instance.error(
         'Import failed: $e',
@@ -124,6 +59,114 @@ class ImportService {
         errorMessage: 'Failed to parse import data: $e',
       );
     }
+  }
+
+  String? _extractEnvelopeData(String raw, dynamic decoded) {
+    Map<String, dynamic>? candidate;
+    if (decoded is Map<String, dynamic>) {
+      candidate = decoded;
+    } else if (raw.trimLeft().startsWith('{"v":1,"enc":true')) {
+      try {
+        final parsed = jsonDecode(raw);
+        if (parsed is Map<String, dynamic>) {
+          candidate = parsed;
+        }
+      } catch (_) {
+        return null;
+      }
+    }
+    if (candidate == null) return null;
+    if (candidate['enc'] != true) return null;
+    final data = candidate['data'];
+    if (data is String && data.isNotEmpty) return data;
+    return null;
+  }
+
+  ImportResult _parseImport(dynamic decoded) {
+    Map<String, dynamic> data;
+    if (decoded is Map<String, dynamic>) {
+      if (decoded.containsKey('data') && decoded['data'] is Map) {
+        data = Map<String, dynamic>.from(decoded['data'] as Map);
+      } else {
+        data = decoded;
+      }
+    } else {
+      return const ImportResult(
+        success: false,
+        totalItems: 0,
+        successfulItems: 0,
+        failedItems: 0,
+        importedItems: [],
+        errorMessage: 'Invalid JSON structure: expected an object',
+      );
+    }
+
+    if (!validateImportData(data)) {
+      return const ImportResult(
+        success: false,
+        totalItems: 0,
+        successfulItems: 0,
+        failedItems: 0,
+        importedItems: [],
+        errorMessage: 'Required data fields missing or invalid',
+      );
+    }
+
+    final importedItems = <ImportedItem>[];
+
+    if (data.containsKey('history') && data['history'] is List) {
+      importedItems.addAll(
+        _importHistory(data['history'] as List<dynamic>),
+      );
+    }
+
+    if (data.containsKey('favorites') && data['favorites'] is List) {
+      importedItems.addAll(
+        _importFavorites(data['favorites'] as List<dynamic>),
+      );
+    }
+
+    if (data.containsKey('vault') && data['vault'] is List) {
+      importedItems.addAll(
+        _importVault(data['vault'] as List<dynamic>),
+      );
+    }
+
+    if (data.containsKey('recipes') && data['recipes'] is List) {
+      importedItems.addAll(
+        _importRecipes(data['recipes'] as List<dynamic>),
+      );
+    }
+
+    if (data.containsKey('tags') && data['tags'] is List) {
+      importedItems.addAll(
+        _importTags(data['tags'] as List<dynamic>),
+      );
+    }
+
+    if (data.containsKey('settings') && data['settings'] is Map) {
+      importedItems.addAll(
+        _importSettings(data['settings'] as Map<String, dynamic>),
+      );
+    }
+
+    final successful = importedItems.where((i) => i.success).length;
+    final failed = importedItems.where((i) => !i.success).length;
+
+    _importCount++;
+
+    AppLogger.instance.info(
+      'Import completed: $successful successful, $failed failed',
+      category: 'ImportService',
+    );
+
+    return ImportResult(
+      success: failed == 0,
+      totalItems: importedItems.length,
+      successfulItems: successful,
+      failedItems: failed,
+      importedItems: importedItems,
+    );
   }
 
   Future<ImportResult> importFromCsv(String csvStr) async {

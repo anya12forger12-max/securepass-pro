@@ -6,6 +6,7 @@ import 'package:securepass_pro/domain/enums/backup_status.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/services/configuration_service.dart';
+import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/workspace_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -138,11 +139,21 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
     };
 
-    if (!backup.isEncrypted) {
-      exportData['data'] = {
-        'config': ConfigurationService.instance.getFullConfig(),
-        'workspaces': WorkspaceService.instance.getWorkspaces().map((w) => w.toMap()).toList(),
-      };
+    final plainPayload = <String, dynamic>{
+      'config': ConfigurationService.instance.getFullConfig(),
+      'workspaces': WorkspaceService.instance.getWorkspaces().map((w) => w.toMap()).toList(),
+    };
+
+    if (backup.isEncrypted) {
+      final ciphertext =
+          await EncryptionService.instance.encrypt(jsonEncode(plainPayload));
+      exportData['data'] = jsonEncode({
+        'v': 1,
+        'enc': true,
+        'data': ciphertext,
+      });
+    } else {
+      exportData['data'] = plainPayload;
     }
 
     return exportData;
