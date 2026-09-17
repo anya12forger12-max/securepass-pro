@@ -7,10 +7,18 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/main.dart';
 
 void main() {
+  setUp(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await PreferencesStorage.instance.init();
+  });
+
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: SecurePassApp()));
     await tester.pumpAndSettle();

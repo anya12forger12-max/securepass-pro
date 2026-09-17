@@ -28,16 +28,23 @@ class PrivacyService {
   }
 
   Future<void> _loadSettings() async {
-    final modeStr = PreferencesStorage.instance.getString(_modeKey);
-    if (modeStr != null) {
-      _currentMode = PrivacyMode.values.firstWhere(
-        (e) => e.name == modeStr,
-        orElse: () => PrivacyMode.standard,
+    try {
+      final modeStr = PreferencesStorage.instance.getString(_modeKey);
+      if (modeStr != null) {
+        _currentMode = PrivacyMode.values.firstWhere(
+          (e) => e.name == modeStr,
+          orElse: () => PrivacyMode.standard,
+        );
+      }
+      _offlineMode = PreferencesStorage.instance.getBool(_offlineKey) ?? true;
+      _telemetryEnabled = PreferencesStorage.instance.getBool(_telemetryKey) ?? false;
+      _analyticsEnabled = PreferencesStorage.instance.getBool(_analyticsKey) ?? false;
+    } catch (e) {
+      AppLogger.instance.error(
+        'Failed to load privacy settings, keeping defaults: $e',
+        category: 'PRIVACY',
       );
     }
-    _offlineMode = PreferencesStorage.instance.getBool(_offlineKey) ?? true;
-    _telemetryEnabled = PreferencesStorage.instance.getBool(_telemetryKey) ?? false;
-    _analyticsEnabled = PreferencesStorage.instance.getBool(_analyticsKey) ?? false;
   }
 
   Future<PrivacyReport> getPrivacyReport() async {

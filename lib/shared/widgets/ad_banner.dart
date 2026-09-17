@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:securepass_pro/services/ad_consent_service.dart';
 import 'package:securepass_pro/services/privacy_service.dart';
 
 /// Adaptive banner ad shown at the bottom of the home screen.
@@ -31,16 +32,26 @@ class _AdBannerState extends State<AdBanner> {
   }
 
   Future<void> _maybeLoadBanner() async {
-    await PrivacyService.instance.initialize();
-    if (!PrivacyService.instance.isAdsAllowed()) {
-      // Privacy-first: no explicit opt-in for analytics/ads, show no banner.
-      return;
+    try {
+      await PrivacyService.instance.initialize();
+      if (!PrivacyService.instance.isAdsAllowed()) {
+        // Privacy-first: no explicit opt-in for analytics/ads, show no banner.
+        return;
+      }
+      await _loadBanner();
+    } catch (error) {
+      debugPrint('AdBanner: unable to load banner: $error');
     }
-    await _loadBanner();
   }
 
   Future<void> _loadBanner() async {
     try {
+      final canServe = await AdConsentService.instance.ensureConsent();
+      if (!canServe) {
+        debugPrint('AdBanner: consent not obtained, skipping ad');
+        return;
+      }
+
       await MobileAds.instance.initialize();
 
       final adapter = BannerAd(

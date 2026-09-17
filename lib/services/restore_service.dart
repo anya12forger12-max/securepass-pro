@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/services/configuration_service.dart';
+import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/workspace_service.dart';
 
 class RestoreService {
@@ -22,7 +25,7 @@ class RestoreService {
     }
 
     try {
-      final data = backupData['data'] as Map<String, dynamic>? ?? {};
+      final data = await _decodeData(backupData['data']);
 
       if (data.containsKey('config')) {
         final config = data['config'] as Map<String, dynamic>;
@@ -42,6 +45,29 @@ class RestoreService {
       AppLogger.instance.error('Restore failed: $e', category: 'RESTORE');
       return false;
     }
+  }
+
+  Future<Map<String, dynamic>> _decodeData(dynamic rawData) async {
+    if (rawData is Map<String, dynamic>) {
+      return rawData;
+    }
+    if (rawData is String) {
+      final envelope = jsonDecode(rawData);
+      if (envelope is Map<String, dynamic> &&
+          envelope['enc'] == true &&
+          envelope['data'] is String) {
+        final plaintext =
+            await EncryptionService.instance.decrypt(envelope['data'] as String);
+        if (plaintext.isEmpty) {
+          throw const FormatException('Decrypted backup is empty or corrupt');
+        }
+        final decoded = jsonDecode(plaintext);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      }
+    }
+    throw const FormatException('Unsupported backup data format');
   }
 
   bool validateBackup(Map<String, dynamic> backupData) {
