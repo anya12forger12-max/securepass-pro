@@ -95,7 +95,7 @@ extension DateTimeExtensions on DateTime {
   DateTime get startOfMonth => DateTime(year, month);
 
   DateTime get endOfMonth {
-    if (month == 12) return DateTime(year + 1, 1).subtract(const Duration(days: 1));
+    if (month == 12) return DateTime(year + 1).subtract(const Duration(days: 1));
     return DateTime(year, month + 1).subtract(const Duration(days: 1));
   }
 

@@ -29,7 +29,7 @@ class DetectedPattern {
 }
 
 class PatternDetector {
-  static final PatternDetector instance = PatternDetector._();
+  static const PatternDetector instance = PatternDetector._();
 
   const PatternDetector._();
 
@@ -347,7 +347,7 @@ class PatternDetector {
       }
 
       if (isRepeating && patternLen < lower.length) {
-        int repetitions = lower.length ~/ patternLen;
+        final int repetitions = lower.length ~/ patternLen;
         if (repetitions >= 2) {
           patterns.add(DetectedPattern(
             type: PatternType.weakRepetition,
@@ -412,7 +412,7 @@ class PatternDetector {
     ];
 
     for (final String month in months) {
-      int idx = lower.indexOf(month);
+      final int idx = lower.indexOf(month);
       if (idx != -1) {
         patterns.add(DetectedPattern(
           type: PatternType.datePattern,
@@ -461,7 +461,7 @@ class PatternDetector {
     ];
 
     for (final String word in dictionaryWords) {
-      int idx = lower.indexOf(word);
+      final int idx = lower.indexOf(word);
       if (idx != -1) {
         String severity;
         if (lower == word) {

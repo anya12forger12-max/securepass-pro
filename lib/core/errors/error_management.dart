@@ -58,7 +58,7 @@ class ErrorManagement {
   final EventBus _eventBus = EventBus.instance;
   final List<ErrorWithContext> _errorLog = [];
   final Map<String, ErrorCategory> _categories = {};
-  int _maxLogSize = 200;
+  final int _maxLogSize = 200;
 
   void initialize() {
     _registerDefaultCategories();
@@ -83,7 +83,6 @@ class ErrorManagement {
     registerCategory(const ErrorCategory(
       id: 'security', name: 'Security Errors',
       description: 'Errors related to security operations',
-      defaultRecovery: RecoveryStrategy.abort,
     ));
     registerCategory(const ErrorCategory(
       id: 'migration', name: 'Migration Errors',
@@ -108,7 +107,6 @@ class ErrorManagement {
     registerCategory(const ErrorCategory(
       id: 'unknown', name: 'Unknown Errors',
       description: 'Uncategorized errors',
-      defaultRecovery: RecoveryStrategy.abort,
     ));
   }
 

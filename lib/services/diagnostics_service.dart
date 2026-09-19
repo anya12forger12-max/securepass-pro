@@ -87,7 +87,6 @@ class DiagnosticsService implements DiagnosticsRepository {
       details: {
         'keyCount': keys.length,
       },
-      recommendation: null,
     );
   }
 
@@ -235,7 +234,7 @@ class DiagnosticsService implements DiagnosticsRepository {
     buffer.writeln('Generated: ${DateTime.now().toIso8601String()}');
     buffer.writeln('Overall: ${(summary['overallStatus'] as DiagnosticStatus).label}');
     buffer.writeln('Checks: ${summary['totalChecks']} total, ${summary['healthyCount']} healthy, ${summary['warningCount']} warnings, ${summary['errorCount']} errors');
-    buffer.writeln('');
+    buffer.writeln();
     for (final entry in _cachedDiagnostics) {
       buffer.writeln('[${entry.status.label}] ${entry.category}: ${entry.message}');
       if (entry.recommendation != null) {

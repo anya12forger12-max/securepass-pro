@@ -27,7 +27,7 @@ class PasswordAnalysis {
 }
 
 class PasswordAnalyzer {
-  static final PasswordAnalyzer instance = PasswordAnalyzer._();
+  static const PasswordAnalyzer instance = PasswordAnalyzer._();
 
   const PasswordAnalyzer._();
 
@@ -117,10 +117,15 @@ class PasswordAnalyzer {
     bool hasSymbol = false;
 
     for (final int codeUnit in password.codeUnits) {
-      if (codeUnit >= 97 && codeUnit <= 122) hasLower = true;
-      else if (codeUnit >= 65 && codeUnit <= 90) hasUpper = true;
-      else if (codeUnit >= 48 && codeUnit <= 57) hasDigit = true;
-      else if (codeUnit >= 32 && codeUnit <= 126) hasSymbol = true;
+      if (codeUnit >= 97 && codeUnit <= 122) {
+        hasLower = true;
+      } else if (codeUnit >= 65 && codeUnit <= 90) {
+        hasUpper = true;
+      } else if (codeUnit >= 48 && codeUnit <= 57) {
+        hasDigit = true;
+      } else if (codeUnit >= 32 && codeUnit <= 126) {
+        hasSymbol = true;
+      }
     }
 
     if (password.length < 8) {

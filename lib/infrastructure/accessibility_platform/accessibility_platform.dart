@@ -117,7 +117,7 @@ class AccessibilityPlatform {
 
   void _registerDefaults() {
     registerProfile(const AccessibilityProfile(
-      id: 'default', name: 'Default', level: AccessibilityLevel.standard,
+      id: 'default', name: 'Default',
     ));
     registerProfile(const AccessibilityProfile(
       id: 'high_contrast', name: 'High Contrast', level: AccessibilityLevel.enhanced,
@@ -125,7 +125,7 @@ class AccessibilityPlatform {
     ));
     registerProfile(const AccessibilityProfile(
       id: 'screen_reader', name: 'Screen Reader', level: AccessibilityLevel.maximum,
-      enableScreenReader: true, enableSemanticLabels: true, enableHapticFeedback: true,
+      enableScreenReader: true,
     ));
     registerProfile(const AccessibilityProfile(
       id: 'reduced_motion', name: 'Reduced Motion', level: AccessibilityLevel.enhanced,

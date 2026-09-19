@@ -73,7 +73,7 @@ extension WidgetExtensions on Widget {
 
   Widget get center => Center(child: this);
 
-  Widget get alignCenter => Align(alignment: Alignment.center, child: this);
+  Widget get alignCenter => Align(child: this);
 
   Widget get alignTopLeft => Align(alignment: Alignment.topLeft, child: this);
 

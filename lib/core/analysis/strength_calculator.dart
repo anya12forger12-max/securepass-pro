@@ -34,7 +34,7 @@ class StrengthResult {
 }
 
 class StrengthCalculator {
-  static final StrengthCalculator instance = StrengthCalculator._();
+  static const StrengthCalculator instance = StrengthCalculator._();
 
   const StrengthCalculator._();
 
@@ -174,12 +174,12 @@ class StrengthCalculator {
     int seqCount = 0;
 
     for (int i = 2; i < password.length; i++) {
-      int a = password.codeUnitAt(i - 2);
-      int b = password.codeUnitAt(i - 1);
-      int c = password.codeUnitAt(i);
+      final int a = password.codeUnitAt(i - 2);
+      final int b = password.codeUnitAt(i - 1);
+      final int c = password.codeUnitAt(i);
 
-      int d1 = b - a;
-      int d2 = c - b;
+      final int d1 = b - a;
+      final int d2 = c - b;
 
       if (d1 == d2 && (d1 == 1 || d1 == -1)) {
         seqCount++;

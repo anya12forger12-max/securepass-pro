@@ -64,6 +64,7 @@ class AdvancedEventBus {
     EventPriority priority = EventPriority.normal,
     bool Function(T event)? filter,
   }) {
+    // ignore: close_sinks — long-lived bus sink; closed by off<T>()/dispose().
     final controller = StreamController<AppEvent>.broadcast();
     final entry = _SubscriptionEntry(
       handler: (e) => handler(e as T),

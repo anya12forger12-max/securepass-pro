@@ -164,7 +164,7 @@ class HistoryService {
   }
 
   StatisticsData getStatistics() {
-    int totalGenerated = _entries.length;
+    final int totalGenerated = _entries.length;
     final Map<String, int> totalByType = {};
     double totalLength = 0;
 
@@ -190,12 +190,6 @@ class HistoryService {
       totalGenerated: totalGenerated,
       totalByType: totalByType,
       averageLength: avgLength,
-      averageEntropy: 0,
-      totalExports: 0,
-      totalImports: 0,
-      totalClipboardCopies: 0,
-      totalRecipesUsed: 0,
-      totalPoliciesUsed: 0,
       recentActivity: recentActivity,
     );
   }

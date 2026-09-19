@@ -29,7 +29,7 @@ extension StringExtensions on String {
     return '$start${maskChar * maskedLength}$end';
   }
 
-  String get maskPassword => maskMiddle(visibleStart: 0, visibleEnd: 0, maskChar: '\u2022');
+  String get maskPassword => maskMiddle(visibleStart: 0, visibleEnd: 0);
 
   String truncate(int maxLength, {String suffix = '...'}) {
     if (length <= maxLength) return this;

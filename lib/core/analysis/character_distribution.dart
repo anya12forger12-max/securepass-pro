@@ -23,7 +23,7 @@ class CharacterDistribution {
 }
 
 class CharacterDistributionAnalyzer {
-  static final CharacterDistributionAnalyzer instance =
+  static const CharacterDistributionAnalyzer instance =
       CharacterDistributionAnalyzer._();
 
   const CharacterDistributionAnalyzer._();
@@ -131,7 +131,7 @@ class CharacterDistributionAnalyzer {
 
   double _log2(double value) {
     if (value <= 0) return 0;
-    final double ln2 = 0.6931471805599453;
+    const double ln2 = 0.6931471805599453;
     return _ln(value) / ln2;
   }
 
@@ -140,8 +140,8 @@ class CharacterDistributionAnalyzer {
     if (x == 1) return 0;
 
     double result = 0;
-    double term = (x - 1) / (x + 1);
-    double termSquared = term * term;
+    final double term = (x - 1) / (x + 1);
+    final double termSquared = term * term;
     double currentTerm = term;
     int n = 1;
 

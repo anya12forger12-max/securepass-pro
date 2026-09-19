@@ -49,7 +49,7 @@ class SearchEngine {
 
   final Map<String, SearchableItem> _index = {};
   final List<String> _searchHistory = [];
-  int _maxHistory = 100;
+  final int _maxHistory = 100;
   bool _initialized = false;
 
   void initialize() {

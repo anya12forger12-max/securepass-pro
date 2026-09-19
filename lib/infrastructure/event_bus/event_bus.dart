@@ -43,6 +43,7 @@ class EventBus {
     void Function(T event) handler, {
     EventPriority priority = EventPriority.normal,
   }) {
+    // ignore: close_sinks — long-lived bus sink; closed by off<T>()/dispose().
     final controller = StreamController<AppEvent>.broadcast();
     final subscription = _EventSubscription(
       handler: (event) => handler(event as T),
@@ -56,6 +57,7 @@ class EventBus {
   Stream<T> subscribe<T extends AppEvent>({
     EventPriority priority = EventPriority.normal,
   }) {
+    // ignore: close_sinks — long-lived bus sink; closed by off<T>()/dispose().
     final controller = StreamController<AppEvent>.broadcast();
     final subscription = _EventSubscription(
       handler: (event) {},

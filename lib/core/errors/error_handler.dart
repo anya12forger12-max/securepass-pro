@@ -116,7 +116,6 @@ class ErrorHandler {
     final message = error is Exception ? error.toString() : error.toString();
     return PlatformError(
       message: message,
-      severity: ErrorSeverity.error,
       stackTrace: stackTrace,
       originalError: error,
     );

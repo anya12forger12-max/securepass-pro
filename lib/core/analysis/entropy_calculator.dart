@@ -25,7 +25,7 @@ class EntropyResult {
 }
 
 class EntropyCalculator {
-  static final EntropyCalculator instance = EntropyCalculator._();
+  static const EntropyCalculator instance = EntropyCalculator._();
 
   const EntropyCalculator._();
 
@@ -111,10 +111,10 @@ class EntropyCalculator {
     final int uniqueCount = password.split('').toSet().length;
     final double uniqueRatio = uniqueCount / password.length;
 
-    double runPenalty = _detectRuns(password);
-    double sequentialPenalty = _detectSequential(password);
+    final double runPenalty = _detectRuns(password);
+    final double sequentialPenalty = _detectSequential(password);
 
-    double estimate = uniqueRatio * 0.6 + (1.0 - runPenalty) * 0.2 + (1.0 - sequentialPenalty) * 0.2;
+    final double estimate = uniqueRatio * 0.6 + (1.0 - runPenalty) * 0.2 + (1.0 - sequentialPenalty) * 0.2;
     return estimate.clamp(0.0, 1.0);
   }
 
@@ -144,12 +144,12 @@ class EntropyCalculator {
     int sequentialCount = 0;
 
     for (int i = 2; i < password.length; i++) {
-      int a = password.codeUnitAt(i - 2);
-      int b = password.codeUnitAt(i - 1);
-      int c = password.codeUnitAt(i);
+      final int a = password.codeUnitAt(i - 2);
+      final int b = password.codeUnitAt(i - 1);
+      final int c = password.codeUnitAt(i);
 
-      int delta1 = b - a;
-      int delta2 = c - b;
+      final int delta1 = b - a;
+      final int delta2 = c - b;
 
       if ((delta1 == 1 && delta2 == 1) ||
           (delta1 == -1 && delta2 == -1) ||

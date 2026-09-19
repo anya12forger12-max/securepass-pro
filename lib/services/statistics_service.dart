@@ -54,7 +54,6 @@ class StatisticsService {
       action: 'exported',
       type: 'export',
       timestamp: DateTime.now(),
-      details: '',
     ));
     _save();
   }
@@ -65,7 +64,6 @@ class StatisticsService {
       action: 'imported',
       type: 'import',
       timestamp: DateTime.now(),
-      details: '',
     ));
     _save();
   }
@@ -81,7 +79,6 @@ class StatisticsService {
       action: 'used_recipe',
       type: 'recipe',
       timestamp: DateTime.now(),
-      details: '',
     ));
     _save();
   }
@@ -92,7 +89,6 @@ class StatisticsService {
       action: 'used_policy',
       type: 'policy',
       timestamp: DateTime.now(),
-      details: '',
     ));
     _save();
   }
@@ -101,8 +97,6 @@ class StatisticsService {
     return StatisticsData(
       totalGenerated: totalGenerated,
       totalByType: Map<String, int>.from(_totalByType),
-      averageLength: 0,
-      averageEntropy: 0,
       totalExports: _totalExports,
       totalImports: _totalImports,
       totalClipboardCopies: _totalClipboardCopies,

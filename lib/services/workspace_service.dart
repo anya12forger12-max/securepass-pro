@@ -147,7 +147,6 @@ class WorkspaceService {
         id: const Uuid().v4(),
         name: wsData['name'] as String,
         description: wsData['description'] as String? ?? '',
-        isActive: false,
       );
       _workspaces.add(workspace);
       await _saveToStorage();

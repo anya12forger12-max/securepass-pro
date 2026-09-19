@@ -177,7 +177,6 @@ class FeatureFlagSystem {
       name: 'Legacy Import v0',
       type: FeatureFlagType.deprecated,
       description: 'Support for v0 import format',
-      status: FeatureFlagStatus.disabled,
     ));
   }
 

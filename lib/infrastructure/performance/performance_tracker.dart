@@ -66,31 +66,31 @@ class PerformanceTracker {
 
   void _registerDefaultBaselines() {
     registerBaseline(const PerformanceBaseline(
-      name: 'startup_time', target: 2000, warningThreshold: 3000, criticalThreshold: 5000, unit: 'ms',
+      name: 'startup_time', target: 2000, warningThreshold: 3000, criticalThreshold: 5000,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'module_load', target: 100, warningThreshold: 200, criticalThreshold: 500, unit: 'ms',
+      name: 'module_load', target: 100, warningThreshold: 200, criticalThreshold: 500,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'service_load', target: 50, warningThreshold: 100, criticalThreshold: 300, unit: 'ms',
+      name: 'service_load', target: 50, warningThreshold: 100, criticalThreshold: 300,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'search_time', target: 50, warningThreshold: 100, criticalThreshold: 200, unit: 'ms',
+      name: 'search_time', target: 50, warningThreshold: 100, criticalThreshold: 200,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'render_time', target: 16, warningThreshold: 32, criticalThreshold: 64, unit: 'ms',
+      name: 'render_time', target: 16, warningThreshold: 32, criticalThreshold: 64,
     ));
     registerBaseline(const PerformanceBaseline(
       name: 'memory_usage', target: 100, warningThreshold: 200, criticalThreshold: 500, unit: 'MB',
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'workspace_load', target: 200, warningThreshold: 500, criticalThreshold: 1000, unit: 'ms',
+      name: 'workspace_load', target: 200, warningThreshold: 500, criticalThreshold: 1000,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'export_time', target: 500, warningThreshold: 1000, criticalThreshold: 3000, unit: 'ms',
+      name: 'export_time', target: 500, warningThreshold: 1000, criticalThreshold: 3000,
     ));
     registerBaseline(const PerformanceBaseline(
-      name: 'import_time', target: 500, warningThreshold: 1000, criticalThreshold: 3000, unit: 'ms',
+      name: 'import_time', target: 500, warningThreshold: 1000, criticalThreshold: 3000,
     ));
   }
 

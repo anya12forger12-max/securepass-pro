@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:securepass_pro/domain/entities/tag.dart';
-import 'package:securepass_pro/domain/enums/tag_color.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 
@@ -152,7 +151,6 @@ class TagService {
         final tag = Tag(
           id: 'default_$name',
           name: name,
-          color: TagColor.blue,
           createdAt: DateTime.now(),
         );
         _tags.add(tag);

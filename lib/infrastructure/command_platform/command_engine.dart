@@ -46,7 +46,7 @@ class CommandEngine {
   final List<String> _executionHistory = [];
   final List<String> _undoStack = [];
   final List<String> _redoStack = [];
-  int _maxHistory = 100;
+  final int _maxHistory = 100;
   int _totalExecuted = 0;
   int _totalFailed = 0;
   bool _initialized = false;

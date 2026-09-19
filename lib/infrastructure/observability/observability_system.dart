@@ -42,9 +42,9 @@ class ObservabilitySystem {
 
   final List<ObservabilityEntry> _entries = [];
   final EventBus _eventBus = EventBus.instance;
-  int _maxEntries = 2000;
+  final int _maxEntries = 2000;
   ObservabilityLevel _minLevel = ObservabilityLevel.info;
-  bool _enabled = true;
+  final bool _enabled = true;
   final Map<String, int> _categoryCounts = {};
 
   void initialize() {}

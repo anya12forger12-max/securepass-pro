@@ -33,7 +33,7 @@ class QualityMetrics {
 }
 
 class QualityMetricsCalculator {
-  static final QualityMetricsCalculator instance = QualityMetricsCalculator._();
+  static const QualityMetricsCalculator instance = QualityMetricsCalculator._();
 
   const QualityMetricsCalculator._();
 
@@ -227,8 +227,8 @@ class QualityMetricsCalculator {
     int alternations = 0;
 
     for (final int codeUnit in password.codeUnits) {
-      bool isUpper = codeUnit >= 65 && codeUnit <= 90;
-      bool isLower = codeUnit >= 97 && codeUnit <= 122;
+      final bool isUpper = codeUnit >= 65 && codeUnit <= 90;
+      final bool isLower = codeUnit >= 97 && codeUnit <= 122;
 
       if (isUpper && lastLower) alternations++;
       if (isLower && lastUpper) alternations++;
@@ -244,8 +244,11 @@ class QualityMetricsCalculator {
 
     if (password.length > 1) {
       final double altRatio = alternations / (password.length - 1);
-      if (altRatio > 0.8) penalty += 30;
-      else if (altRatio > 0.6) penalty += 20;
+      if (altRatio > 0.8) {
+        penalty += 30;
+      } else if (altRatio > 0.6) {
+        penalty += 20;
+      }
     }
 
     bool hasMixedSymbols = false;
@@ -255,10 +258,15 @@ class QualityMetricsCalculator {
     bool hasSymbol = false;
 
     for (final int codeUnit in password.codeUnits) {
-      if (codeUnit >= 97 && codeUnit <= 122) hasLower = true;
-      else if (codeUnit >= 65 && codeUnit <= 90) hasUpper = true;
-      else if (codeUnit >= 48 && codeUnit <= 57) hasDigit = true;
-      else if (codeUnit >= 32 && codeUnit <= 126) hasSymbol = true;
+      if (codeUnit >= 97 && codeUnit <= 122) {
+        hasLower = true;
+      } else if (codeUnit >= 65 && codeUnit <= 90) {
+        hasUpper = true;
+      } else if (codeUnit >= 48 && codeUnit <= 57) {
+        hasDigit = true;
+      } else if (codeUnit >= 32 && codeUnit <= 126) {
+        hasSymbol = true;
+      }
     }
 
     int classCount = 0;
@@ -271,18 +279,24 @@ class QualityMetricsCalculator {
 
     if (hasMixedSymbols) penalty += 15;
 
-    int score = 100 - penalty;
+    final int score = 100 - penalty;
     return score.clamp(0, 100);
   }
 
   int _calculateMemorabilityScore(String password) {
     int score = 50;
 
-    if (password.length <= 8) score += 20;
-    else if (password.length <= 12) score += 10;
-    else if (password.length <= 16) score += 0;
-    else if (password.length <= 20) score -= 10;
-    else score -= 20;
+    if (password.length <= 8) {
+      score += 20;
+    } else if (password.length <= 12) {
+      score += 10;
+    } else if (password.length <= 16) {
+      score += 0;
+    } else if (password.length <= 20) {
+      score -= 10;
+    } else {
+      score -= 20;
+    }
 
     int classCount = 0;
     bool hasLower = false;
@@ -291,10 +305,15 @@ class QualityMetricsCalculator {
     bool hasSymbol = false;
 
     for (final int codeUnit in password.codeUnits) {
-      if (codeUnit >= 97 && codeUnit <= 122) hasLower = true;
-      else if (codeUnit >= 65 && codeUnit <= 90) hasUpper = true;
-      else if (codeUnit >= 48 && codeUnit <= 57) hasDigit = true;
-      else if (codeUnit >= 32 && codeUnit <= 126) hasSymbol = true;
+      if (codeUnit >= 97 && codeUnit <= 122) {
+        hasLower = true;
+      } else if (codeUnit >= 65 && codeUnit <= 90) {
+        hasUpper = true;
+      } else if (codeUnit >= 48 && codeUnit <= 57) {
+        hasDigit = true;
+      } else if (codeUnit >= 32 && codeUnit <= 126) {
+        hasSymbol = true;
+      }
     }
 
     if (hasLower) classCount++;
@@ -337,11 +356,11 @@ class QualityMetricsCalculator {
     if (maxRun >= 3) patternCount++;
 
     for (int i = 2; i < password.length; i++) {
-      int a = password.codeUnitAt(i - 2);
-      int b = password.codeUnitAt(i - 1);
-      int c = password.codeUnitAt(i);
-      int d1 = b - a;
-      int d2 = c - b;
+      final int a = password.codeUnitAt(i - 2);
+      final int b = password.codeUnitAt(i - 1);
+      final int c = password.codeUnitAt(i);
+      final int d1 = b - a;
+      final int d2 = c - b;
       if (d1 == d2 && (d1 == 1 || d1 == -1)) {
         patternCount++;
         break;
@@ -361,15 +380,15 @@ class QualityMetricsCalculator {
     }
 
     if (password.length >= 4) {
-      String firstHalf = password.substring(0, password.length ~/ 2);
-      String secondHalf = password.substring(password.length ~/ 2);
+      final String firstHalf = password.substring(0, password.length ~/ 2);
+      final String secondHalf = password.substring(password.length ~/ 2);
       if (firstHalf == secondHalf) patternCount++;
     }
 
     if (password.length >= 4) {
       for (int i = 0; i <= password.length - 4; i++) {
-        String chunk = password.substring(i, i + 2);
-        String rest = password.substring(i + 2);
+        final String chunk = password.substring(i, i + 2);
+        final String rest = password.substring(i + 2);
         if (rest.contains(chunk)) {
           patternCount++;
           break;

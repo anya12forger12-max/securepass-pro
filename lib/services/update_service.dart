@@ -119,9 +119,6 @@ class UpdateService {
     return UpdateInfo(
       currentVersion: currentVersion,
       latestVersion: currentVersion,
-      isUpdateAvailable: false,
-      releaseNotes: null,
-      downloadUrl: null,
     );
   }
 

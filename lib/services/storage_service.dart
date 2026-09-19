@@ -101,7 +101,7 @@ class StorageService implements StorageRepository {
   }
 
   Future<Map<String, dynamic>> getStorageReport() async {
-    final prefSize = await getSize(type: StorageType.preferences);
+    final prefSize = await getSize();
     final encSize = await getSize(type: StorageType.encrypted);
     return {
       'preferences': prefSize,

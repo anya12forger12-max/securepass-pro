@@ -103,7 +103,6 @@ class PluginService {
       version: plugin.version,
       description: plugin.description,
       author: plugin.author,
-      isEnabled: false,
       permissions: plugin.permissions,
     );
     AppLogger.instance.info('Plugin disabled: ${plugin.name}', category: 'PLUGIN');
