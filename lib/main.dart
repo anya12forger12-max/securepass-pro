@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:securepass_pro/navigation/app_router.dart';
+import 'package:securepass_pro/themes/app_theme.dart';
+import 'package:securepass_pro/domain/enums/app_theme_mode.dart';
 import 'package:securepass_pro/themes/theme_state.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
@@ -493,13 +495,14 @@ class SecurePassApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+    final themeMode = ref.watch(themeProvider.select((s) => s.mode));
 
     return MaterialApp.router(
       title: 'SecurePass Pro',
       debugShowCheckedModeBanner: false,
-      theme: ref.read(themeProvider.notifier).lightTheme,
-      darkTheme: ref.read(themeProvider.notifier).darkTheme,
-      themeMode: ref.read(themeProvider.notifier).flutterThemeMode,
+      theme: AppTheme.getTheme(AppThemeMode.light),
+      darkTheme: AppTheme.getTheme(AppThemeMode.dark),
+      themeMode: AppTheme.getFlutterThemeMode(themeMode),
       routerConfig: router,
       builder: (context, child) {
         return MediaQuery(

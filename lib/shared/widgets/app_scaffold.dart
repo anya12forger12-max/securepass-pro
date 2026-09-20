@@ -18,7 +18,8 @@ class AppScaffold extends ConsumerWidget {
 
     NavigationSection? currentSection;
     for (final section in NavigationSection.values) {
-      if (currentRoute.startsWith('/${section.name}')) {
+      if (currentRoute == '/${section.path}' ||
+          currentRoute.startsWith('/${section.path}/')) {
         currentSection = section;
         break;
       }
@@ -31,7 +32,7 @@ class AppScaffold extends ConsumerWidget {
             AppSidebar(
               currentSection: currentSection ?? NavigationSection.home,
               onSectionSelected: (section) {
-                context.go('/${section.name}');
+                context.go('/${section.path}');
               },
             ),
             Expanded(
@@ -54,7 +55,7 @@ class AppScaffold extends ConsumerWidget {
         selectedIndex: _getMobileIndex(currentSection),
         onDestinationSelected: (index) {
           const sections = _mobileSections;
-          context.go('/${sections[index].name}');
+          context.go('/${sections[index].path}');
         },
         destinations: _mobileSections
             .map(
