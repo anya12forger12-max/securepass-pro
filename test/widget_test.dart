@@ -9,13 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/main.dart';
 
 void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({AppConstants.onboardingCompleteKey: true});
     await PreferencesStorage.instance.init();
   });
 
@@ -26,3 +27,4 @@ void main() {
     expect(find.byType(SecurePassApp), findsOneWidget);
   });
 }
+

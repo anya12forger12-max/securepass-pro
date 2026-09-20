@@ -495,13 +495,20 @@ class SecurePassApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
-    final themeMode = ref.watch(themeProvider.select((s) => s.mode));
+    final themeState = ref.watch(themeProvider);
+    final themeMode = themeState.mode;
 
     return MaterialApp.router(
       title: 'SecurePass Pro',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.getTheme(AppThemeMode.light),
-      darkTheme: AppTheme.getTheme(AppThemeMode.dark),
+      theme: AppTheme.getTheme(
+        AppThemeMode.light,
+        accentColor: themeState.accentColor,
+      ),
+      darkTheme: AppTheme.getTheme(
+        AppThemeMode.dark,
+        accentColor: themeState.accentColor,
+      ),
       themeMode: AppTheme.getFlutterThemeMode(themeMode),
       routerConfig: router,
       builder: (context, child) {

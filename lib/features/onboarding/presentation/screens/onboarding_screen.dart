@@ -1,7 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:securepass_pro/core/constants/app_constants.dart';
+import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
+
+  void _complete(BuildContext context) {
+    unawaited(PreferencesStorage.instance.setBool(
+      AppConstants.onboardingCompleteKey,
+      true,
+    ));
+    context.go('/home');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +52,12 @@ class OnboardingScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
                 FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacementNamed('/home');
-                  },
+                  onPressed: () => _complete(context),
                   child: const Text('Get Started'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacementNamed('/home');
-                  },
+                  onPressed: () => _complete(context),
                   child: const Text('Skip Setup'),
                 ),
               ],

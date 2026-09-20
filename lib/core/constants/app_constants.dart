@@ -32,4 +32,8 @@ abstract final class AppConstants {
   static const int lockoutDurationMinutes = 30;
   static const int passwordHistoryCount = 20;
   static const int autoLockTimeoutSeconds = 300;
+
+  static const String themeModeKey = 'theme_mode';
+  static const String accentColorKey = 'accent_color';
+  static const String onboardingCompleteKey = 'onboarding_complete';
 }

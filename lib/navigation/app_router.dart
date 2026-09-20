@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/domain/enums/navigation_section.dart';
+import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/shared/widgets/app_scaffold.dart';
 import 'package:securepass_pro/features/home/presentation/screens/home_screen.dart';
 import 'package:securepass_pro/features/password_generator/presentation/screens/password_generator_screen.dart';
@@ -20,6 +22,17 @@ final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
+
+bool _onboardingComplete() {
+  try {
+    return PreferencesStorage.instance.getBool(
+          AppConstants.onboardingCompleteKey,
+        ) ??
+        false;
+  } catch (_) {
+    return false;
+  }
+}
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -143,6 +156,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
+      if (state.matchedLocation == '/home' && !_onboardingComplete()) {
+        return '/onboarding';
+      }
       return null;
     },
   );

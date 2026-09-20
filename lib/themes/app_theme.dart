@@ -18,14 +18,14 @@ class AppTheme {
     }
   }
 
-  static ThemeData getTheme(AppThemeMode mode) {
+  static ThemeData getTheme(AppThemeMode mode, {Color? accentColor}) {
     switch (mode) {
       case AppThemeMode.light:
-        return _lightTheme();
+        return _lightTheme(accentColor);
       case AppThemeMode.dark:
-        return _darkTheme();
+        return _darkTheme(accentColor);
       case AppThemeMode.system:
-        return _lightTheme();
+        return _lightTheme(accentColor);
       case AppThemeMode.highContrast:
         return _highContrastTheme();
       case AppThemeMode.ultraHighContrast:
@@ -214,9 +214,37 @@ class AppTheme {
     );
   }
 
-  static ThemeData _lightTheme() => _buildTheme(_lightColorScheme());
+  static ColorScheme _withAccent(ColorScheme scheme, Color accent) {
+    final isLight = scheme.brightness == Brightness.light;
+    final onAccent =
+        accent.computeLuminance() > 0.5 ? const Color(0xFF000000) : Colors.white;
+    final primaryContainer = isLight
+        ? Color.lerp(accent, Colors.white, 0.82)!
+        : Color.lerp(accent, Colors.black, 0.55)!;
+    final onPrimaryContainer = isLight
+        ? Color.lerp(accent, Colors.black, 0.55)!
+        : Color.lerp(accent, Colors.white, 0.85)!;
+    return scheme.copyWith(
+      primary: accent,
+      onPrimary: onAccent,
+      primaryContainer: primaryContainer,
+      onPrimaryContainer: onPrimaryContainer,
+    );
+  }
 
-  static ThemeData _darkTheme() => _buildTheme(_darkColorScheme());
+  static ThemeData _lightTheme([Color? accentColor]) {
+    final scheme = _lightColorScheme();
+    return _buildTheme(
+      accentColor == null ? scheme : _withAccent(scheme, accentColor),
+    );
+  }
+
+  static ThemeData _darkTheme([Color? accentColor]) {
+    final scheme = _darkColorScheme();
+    return _buildTheme(
+      accentColor == null ? scheme : _withAccent(scheme, accentColor),
+    );
+  }
 
   static ThemeData _highContrastTheme() =>
       _buildTheme(_highContrastColorScheme());

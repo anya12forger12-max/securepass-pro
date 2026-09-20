@@ -16,6 +16,8 @@ class WorkspaceService {
   static const String _storageKey = 'workspaces_data';
   static const String _currentKey = 'current_workspace_id';
 
+  String? get currentWorkspaceId => _currentWorkspaceId;
+
   Future<void> initialize() async {
     if (_initialized) return;
     await _loadFromStorage();
