@@ -52,3 +52,7 @@ GoogleService-Info.plist
 .env
 .env.*
 !.env.example
+
+# Stray working files
+CHAT_HISTORY.md
+chat_history*.md
