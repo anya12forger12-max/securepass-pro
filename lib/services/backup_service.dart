@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/domain/entities/backup_metadata.dart';
 import 'package:securepass_pro/domain/enums/backup_status.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/services/configuration_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
+import 'package:securepass_pro/services/runtime_info_service.dart';
 import 'package:securepass_pro/services/workspace_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -100,7 +100,7 @@ class BackupService {
     final metadata = BackupMetadata(
       id: id,
       name: backupName,
-      version: AppConstants.appVersion,
+      version: RuntimeInfoService.instance.versionLabel,
       sizeBytes: estimatedSize,
       status: BackupStatus.success,
       isEncrypted: isEncrypted,
