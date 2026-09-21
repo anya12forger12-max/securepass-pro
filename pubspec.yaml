@@ -1,7 +1,7 @@
 name: securepass_pro
 description: "Professional Privacy-First Password & Credential Generator"
 publish_to: 'none'
-version: 2.2.19+24
+version: 2.2.20+25
 
 environment:
   sdk: ^3.12.2
@@ -16,6 +16,7 @@ dependencies:
   # State Management
   flutter_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
+  package_info_plus: ^9.0.1
 
   # Navigation
   go_router: ^14.8.1

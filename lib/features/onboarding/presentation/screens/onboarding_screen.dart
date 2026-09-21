@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
@@ -8,11 +6,12 @@ import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
-  void _complete(BuildContext context) {
-    unawaited(PreferencesStorage.instance.setBool(
+  Future<void> _complete(BuildContext context) async {
+    await PreferencesStorage.instance.setBool(
       AppConstants.onboardingCompleteKey,
       true,
-    ));
+    );
+    if (!context.mounted) return;
     context.go('/home');
   }
 

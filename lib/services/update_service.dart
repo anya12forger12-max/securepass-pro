@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
+import 'package:securepass_pro/services/runtime_info_service.dart';
 
 class UpdateInfo {
   const UpdateInfo({
@@ -122,7 +122,7 @@ class UpdateService {
     );
   }
 
-  String getCurrentVersion() => AppConstants.appVersion;
+  String getCurrentVersion() => RuntimeInfoService.instance.versionLabel;
 
   List<UpdateHistoryEntry> getUpdateHistory() => List.unmodifiable(_history);
 

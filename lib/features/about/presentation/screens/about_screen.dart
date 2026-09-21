@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
+import 'package:securepass_pro/services/runtime_info_service.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -37,7 +38,7 @@ class AboutScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Version ${AppConstants.appVersion}',
+                          'Version ${RuntimeInfoService.instance.versionLabel}',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface
                                 .withValues(alpha: 0.6),

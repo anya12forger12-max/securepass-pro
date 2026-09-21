@@ -35,6 +35,7 @@ import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/storage_service.dart';
 import 'package:securepass_pro/services/update_service.dart';
 import 'package:securepass_pro/services/restore_service.dart';
+import 'package:securepass_pro/services/runtime_info_service.dart';
 import 'package:securepass_pro/services/vault_service.dart';
 
 import 'package:securepass_pro/infrastructure/event_bus/event_bus.dart';
@@ -166,6 +167,13 @@ Future<void> _initializeServices() async {
     'logging',
     LoggingService.instance,
     description: 'Logging service',
+  );
+
+  await RuntimeInfoService.instance.initialize();
+  serviceRegistry.register(
+    'runtime_info',
+    RuntimeInfoService.instance,
+    description: 'Runtime version resolver',
   );
 
   await StorageService.instance.initialize();
