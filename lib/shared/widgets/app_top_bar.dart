@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/core/constants/spacing_constants.dart';
 
 class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -35,7 +36,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
             tooltip: 'Notifications',
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () => context.go('/help'),
             icon: const Icon(Icons.help_outline, size: 20),
             tooltip: 'Help',
           ),

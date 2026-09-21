@@ -73,6 +73,7 @@ class AppScaffold extends ConsumerWidget {
   static const _mobileSections = <NavigationSection>[
     NavigationSection.home,
     NavigationSection.passwordGenerator,
+    NavigationSection.workspace,
     NavigationSection.settings,
     NavigationSection.about,
   ];
