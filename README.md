@@ -84,6 +84,17 @@ flutter build appbundle --release
 
 Latest signed prebuilt release (APK + AAB): see the [Releases](https://github.com/anya12forger12-max/securepass-pro/releases) page.
 
+## Supported Android Versions
+
+- Android 7.0 (API 24) and later.
+- Built and tested on Android 14 (API 34) / Android 15 (API 36).
+
+## Known Limitations
+
+- The vault is stored **only on this device**, encrypted with AES-GCM using a PBKDF2-HMAC-SHA256-derived key. There is no account and no cloud sync.
+- Uninstalling the app deletes the vault unless an encrypted backup was exported first.
+- AdMob consent (EEA/UK) follows Google's UMP; ads stay disabled until consent is given where required.
+
 ## Technology Stack
 
 - **Flutter / Dart** with **Riverpod** (state) and **GoRouter** (navigation)
