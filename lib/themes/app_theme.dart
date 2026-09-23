@@ -48,9 +48,9 @@ class AppTheme {
 
   static ColorScheme _darkColorScheme() => const ColorScheme.dark(
     primary: Color(0xFF64B5F6),
-    onPrimary: Color(0xFF0D47A1),
+    onPrimary: Color(0xFF08315E),
     primaryContainer: Color(0xFF1565C0),
-    onPrimaryContainer: Color(0xFFBBDEFB),
+    onPrimaryContainer: Colors.white,
     secondary: Color(0xFF90A4AE),
     onSecondary: Color(0xFF263238),
     secondaryContainer: Color(0xFF37474F),
@@ -59,7 +59,7 @@ class AppTheme {
     onSurface: Color(0xFFE1E1E1),
     surfaceContainerHighest: Color(0xFF2C2C3E),
     error: Color(0xFFEF5350),
-    onError: Color(0xFFB71C1C),
+    onError: Color(0xFF0A0A0A),
     outline: Color(0xFF616161),
   );
 
@@ -133,7 +133,7 @@ class AppTheme {
           color: colorScheme.onPrimaryContainer,
         ),
         unselectedIconTheme: IconThemeData(
-          color: colorScheme.onSurface.withValues(alpha: 0.6),
+          color: colorScheme.onSurface.withValues(alpha: 0.75),
         ),
         selectedLabelTextStyle: TextStyle(
           color: colorScheme.onPrimaryContainer,
@@ -141,7 +141,7 @@ class AppTheme {
           fontSize: 12,
         ),
         unselectedLabelTextStyle: TextStyle(
-          color: colorScheme.onSurface.withValues(alpha: 0.6),
+          color: colorScheme.onSurface.withValues(alpha: 0.75),
           fontSize: 12,
         ),
       ),
@@ -221,9 +221,10 @@ class AppTheme {
     final primaryContainer = isLight
         ? Color.lerp(accent, Colors.white, 0.82)!
         : Color.lerp(accent, Colors.black, 0.55)!;
-    final onPrimaryContainer = isLight
-        ? Color.lerp(accent, Colors.black, 0.55)!
-        : Color.lerp(accent, Colors.white, 0.85)!;
+    final onPrimaryContainer =
+        primaryContainer.computeLuminance() > 0.4
+            ? const Color(0xFF000000)
+            : Colors.white;
     return scheme.copyWith(
       primary: accent,
       onPrimary: onAccent,
