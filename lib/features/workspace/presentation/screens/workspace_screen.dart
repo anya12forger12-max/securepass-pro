@@ -13,7 +13,8 @@ class WorkspaceScreen extends StatefulWidget {
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
 }
 
-class _WorkspaceScreenState extends State<WorkspaceScreen> {
+class _WorkspaceScreenState extends State<WorkspaceScreen>
+    with WidgetsBindingObserver {
   final VaultService _vault = VaultService();
   final Set<String> _revealed = {};
   List<VaultEntry> _entries = [];
@@ -21,7 +22,26 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _vault.lockIfAutoLockElapsed();
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final wasLocked = _vault.isLocked;
+      _vault.lockIfAutoLockElapsed();
+      if (wasLocked != _vault.isLocked && mounted) {
+        setState(() {});
+      }
+    }
   }
 
   void _load() {
@@ -113,6 +133,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_vault.isLocked && _vault.hasPin) {
+      return _LockedVaultView(onUnlocked: _load);
+    }
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -364,6 +388,119 @@ class _AddEntryDialogState extends State<_AddEntryDialog> {
           child: const Text('Save'),
         ),
       ],
+    );
+  }
+}
+
+class _LockedVaultView extends StatefulWidget {
+  const _LockedVaultView({required this.onUnlocked});
+
+  final VoidCallback onUnlocked;
+
+  @override
+  State<_LockedVaultView> createState() => _LockedVaultViewState();
+}
+
+class _LockedVaultViewState extends State<_LockedVaultView> {
+  final _pinController = TextEditingController();
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _unlock() async {
+    final pin = _pinController.text;
+    if (pin.isEmpty) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final ok = await VaultService().unlock(pin);
+    if (!mounted) return;
+    if (ok) {
+      widget.onUnlocked();
+      return;
+    }
+    setState(() {
+      _busy = false;
+      _error = 'Incorrect PIN. Please try again.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 48,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Vault locked',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enter your PIN to access your saved credentials.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: const Key('vault_pin_field'),
+                    controller: _pinController,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
+                    maxLength: 12,
+                    decoration: InputDecoration(
+                      labelText: 'Vault PIN',
+                      prefixIcon: const Icon(Icons.pin_outlined),
+                      border: const OutlineInputBorder(),
+                      errorText: _error,
+                      counterText: '',
+                    ),
+                    onSubmitted: (_) => _unlock(),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: _busy ? null : _unlock,
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.lock_open),
+                    label: const Text('Unlock'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -95,11 +95,16 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _SecurityDialog extends StatelessWidget {
+class _SecurityDialog extends StatefulWidget {
   const _SecurityDialog({required this.vault});
 
   final VaultService vault;
 
+  @override
+  State<_SecurityDialog> createState() => _SecurityDialogState();
+}
+
+class _SecurityDialogState extends State<_SecurityDialog> {
   static const List<({int minutes, String label})> _autoLockOptions = [
     (minutes: 1, label: '1 minute'),
     (minutes: 5, label: '5 minutes'),
@@ -108,82 +113,167 @@ class _SecurityDialog extends StatelessWidget {
     (minutes: 60, label: '60 minutes'),
   ];
 
+  late final VaultService vault = widget.vault;
+  final _pinController = TextEditingController();
+  late int selected = vault.autoLockSeconds;
+  String? _pinError;
+  bool _settingPin = false;
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _setPin() async {
+    final wasNew = _isNew;
+    final pin = _pinController.text.trim();
+    if (pin.length < 4) {
+      setState(() => _pinError = 'PIN must be at least 4 characters');
+      return;
+    }
+    setState(() {
+      _settingPin = true;
+      _pinError = null;
+    });
+    await vault.setVaultPin(pin);
+    vault.setAutoLockSeconds(selected * 60);
+    if (!mounted) return;
+    _pinController.clear();
+    setState(() => _settingPin = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(wasNew ? 'Vault PIN set' : 'Vault PIN updated'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  bool get _isNew => !vault.hasPin;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    int selected = vault.autoLockSeconds;
-    final String selectedLabel = _labelFor(selected);
+    final selectedLabel = _labelFor(selected);
+    final pinEnabled = vault.hasPin;
 
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          title: const Text('Security'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your vault is encrypted on-device with strong cryptography.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Fingerprint / PIN unlock and auto-lock keep credentials safe when you step away.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Auto-lock after', style: theme.textTheme.titleSmall),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedLabel,
-                  decoration: const InputDecoration(
-                    labelText: 'Inactivity timeout',
-                  ),
-                  items: [
-                    for (final option in _autoLockOptions)
-                      DropdownMenuItem(
-                        value: option.label,
-                        child: Text(option.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => selected = _minutesFor(value));
-                  },
-                ),
-                const SizedBox(height: 16),
-                FilledButton.tonalIcon(
-                  onPressed: () {
-                    vault.setAutoLockSeconds(selected * 60);
-                    vault.lock();
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Auto-lock updated and vault locked'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.lock),
-                  label: const Text('Apply & lock vault now'),
-                ),
-              ],
+    return AlertDialog(
+      title: const Text('Security'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your vault is encrypted on-device with strong cryptography.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+            const SizedBox(height: 4),
+            Text(
+              'Pin protect your vault; auto-lock re-locks it when you step away.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Vault PIN', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _pinController,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: 12,
+              decoration: InputDecoration(
+                labelText: _isNew ? 'Create vault PIN' : 'Enter new vault PIN',
+                prefixIcon: const Icon(Icons.pin_outlined),
+                border: const OutlineInputBorder(),
+                errorText: _pinError,
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _settingPin ? null : _setPin,
+                icon: _settingPin
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(_isNew ? Icons.pin : Icons.refresh),
+                label: Text(_isNew ? 'Set vault PIN' : 'Update PIN'),
+              ),
+            ),
+            if (pinEnabled) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Vault protection enabled.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text('Auto-lock after', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: selectedLabel,
+              decoration: const InputDecoration(
+                labelText: 'Inactivity timeout',
+              ),
+              items: [
+                for (final option in _autoLockOptions)
+                  DropdownMenuItem(
+                    value: option.label,
+                    child: Text(option.label),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => selected = _minutesFor(value));
+              },
+            ),
+            if (!pinEnabled) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Set a vault PIN above to enable locking.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: pinEnabled
+                  ? () {
+                      vault.setAutoLockSeconds(selected * 60);
+                      vault.lock();
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Auto-lock updated and vault locked'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.lock),
+              label: const Text('Apply & lock vault now'),
             ),
           ],
-        );
-      },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
     );
   }
 

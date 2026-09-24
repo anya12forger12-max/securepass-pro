@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart' hide Hmac;
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart';
 import 'package:securepass_pro/domain/entities/vault_entry.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
@@ -20,6 +21,9 @@ class VaultService {
   static const int _pbkdf2Bits = 256;
   static const String _pbkdf2Prefix = 'pbkdf2:';
 
+  @visibleForTesting
+  int? pbkdf2IterationsOverride;
+
   bool _initialized = false;
   final List<VaultEntry> _entries = [];
   final Set<String> _folders = {};
@@ -30,17 +34,25 @@ class VaultService {
   DateTime? _lastUnlockTime;
 
   bool get isLocked => _isLocked;
+  bool get hasPin => _vaultPin != null;
   int get autoLockSeconds => _autoLockSeconds;
   Set<String> get folders => Set.unmodifiable(_folders);
 
   Future<void> initialize() async {
     if (_initialized) return;
     await _load();
+    if (_vaultPin == null) {
+      _isLocked = false;
+    }
     _initialized = true;
     AppLogger.instance.info(
       'VaultService initialized with ${_entries.length} entries, ${_folders.length} folders',
       category: 'VaultService',
     );
+  }
+
+  void lockIfAutoLockElapsed() {
+    if (shouldAutoLock) lock();
   }
 
   void addEntry(VaultEntry entry) {
@@ -314,7 +326,7 @@ class VaultService {
   Future<String> _derivePbkdf2(String password) async {
     final pbkdf2 = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
-      iterations: _pbkdf2Iterations,
+      iterations: pbkdf2IterationsOverride ?? _pbkdf2Iterations,
       bits: _pbkdf2Bits,
     );
     final key = await pbkdf2.deriveKey(
@@ -397,7 +409,9 @@ class VaultService {
       _vaultPin = json['vaultPin'] as String?;
       _hashChars = json['salt'] as String?;
       _autoLockSeconds = json['autoLockSeconds'] as int? ?? 300;
-      _isLocked = json['isLocked'] as bool? ?? true;
+      _isLocked = _vaultPin != null
+          ? (json['isLocked'] as bool? ?? true)
+          : false;
 
       final entriesJson = json['entries'] as List<dynamic>?;
       if (entriesJson != null) {
