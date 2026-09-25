@@ -115,7 +115,7 @@ class _SecurityDialogState extends State<_SecurityDialog> {
 
   late final VaultService vault = widget.vault;
   final _pinController = TextEditingController();
-  late int selected = vault.autoLockSeconds;
+  late int selected = _nearestAutoLockMinutes(vault.autoLockSeconds);
   String? _pinError;
   bool _settingPin = false;
 
@@ -277,12 +277,25 @@ class _SecurityDialogState extends State<_SecurityDialog> {
     );
   }
 
-  static String _labelFor(int seconds) {
-    final minutes = seconds ~/ 60;
+  static String _labelFor(int minutes) {
     for (final option in _autoLockOptions) {
       if (option.minutes == minutes) return option.label;
     }
     return '$minutes ${minutes == 1 ? 'minute' : 'minutes'}';
+  }
+
+  static int _nearestAutoLockMinutes(int autoLockSeconds) {
+    final minutes = autoLockSeconds ~/ 60;
+    var nearest = _autoLockOptions.first.minutes;
+    var nearestDelta = (minutes - nearest).abs();
+    for (final option in _autoLockOptions) {
+      final delta = (minutes - option.minutes).abs();
+      if (delta < nearestDelta) {
+        nearest = option.minutes;
+        nearestDelta = delta;
+      }
+    }
+    return nearest;
   }
 
   static int _minutesFor(String label) {
