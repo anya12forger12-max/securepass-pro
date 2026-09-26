@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:securepass_pro/services/configuration_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/import_service.dart';
 import 'package:securepass_pro/services/restore_service.dart';
@@ -76,8 +78,8 @@ void main() {
       final cipher = await EncryptionService.instance.encrypt('vault secret');
       final tampered = _corruptLastChar(cipher);
       expect(
-        await EncryptionService.instance.decrypt(tampered),
-        isEmpty,
+        () => EncryptionService.instance.decrypt(tampered),
+        throwsA(isA<EncryptionException>()),
         reason: 'tampered ciphertext must fail authentication, not return plaintext',
       );
     });
@@ -86,21 +88,33 @@ void main() {
       final cipher = await EncryptionService.instance.encrypt('vault secret');
       final raw = base64Decode(cipher);
       raw[raw.length - 1] ^= 0xFF;
-      expect(await EncryptionService.instance.decrypt(base64Encode(raw)), isEmpty);
+      expect(
+        () => EncryptionService.instance.decrypt(base64Encode(raw)),
+        throwsA(isA<EncryptionException>()),
+      );
     });
 
     test('rejects truncated ciphertext', () async {
       final cipher = await EncryptionService.instance.encrypt('vault secret');
       final truncated = base64Encode(base64Decode(cipher).sublist(0, 10));
-      expect(await EncryptionService.instance.decrypt(truncated), isEmpty);
+      expect(
+        () => EncryptionService.instance.decrypt(truncated),
+        throwsA(isA<EncryptionException>()),
+      );
     });
 
-    test('rejects invalid base64 without throwing', () async {
-      expect(await EncryptionService.instance.decrypt('!!!not base64!!!'), isEmpty);
+    test('rejects invalid base64 with a typed error', () async {
+      expect(
+        () => EncryptionService.instance.decrypt('!!!not base64!!!'),
+        throwsA(isA<EncryptionException>()),
+      );
     });
 
     test('fails closed when the ciphertext is empty', () async {
-      expect(await EncryptionService.instance.decrypt(''), isEmpty);
+      expect(
+        () => EncryptionService.instance.decrypt(''),
+        throwsA(isA<EncryptionException>()),
+      );
     });
 
     test('persists the master key in secure storage, never in plaintext logs',
@@ -283,8 +297,53 @@ void main() {
         reason: 'the app\'s own backup must restore; error was '
             '${result.errorMessage}',
       );
-      expect(result.successfulItems, 1,
+      final vaultItems = result.importedItems
+          .where((i) => i.type == 'vault' && i.name == 'GitHub')
+          .toList();
+      expect(vaultItems, hasLength(1),
           reason: 'the vault entry in the backup must be imported');
+      expect(vaultItems.single.success, isTrue);
+
+      // config/workspaces ship in the same payload, so accepting those keys
+      // must actually apply them rather than validate-and-drop.
+      final configItems = result.importedItems.where((i) => i.type == 'config');
+      expect(configItems, hasLength(1),
+          reason: 'the app settings in the backup must be applied');
+      expect(configItems.single.success, isTrue);
+      expect(ConfigurationService.instance.getFullConfig()['theme'], 'dark');
+    });
+
+    test('a backup this device cannot decrypt fails honestly, not silently',
+        () async {
+      // Encrypt under a key this device does not hold, i.e. what restoring a
+      // backup from another device actually looks like. The ciphertext is
+      // well-formed, so only a real AES-GCM tag check can reject it.
+      final foreignKey = SecretKey(
+        List<int>.generate(32, (i) => (i * 7 + 3) & 0xFF),
+      );
+      final foreignBox = await AesGcm.with256bits().encrypt(
+        utf8.encode(jsonEncode({
+          'vault': <dynamic>[],
+        })),
+        secretKey: foreignKey,
+      );
+
+      final result = await ImportService.instance.importFromJson(
+        jsonEncode({
+          'metadata': {'id': 'b2', 'name': 'b', 'version': '2.2.28+33'},
+          'data': jsonEncode({
+            'v': 1,
+            'enc': true,
+            'data': base64Encode(foreignBox.concatenation()),
+          }),
+        }),
+      );
+
+      expect(result.success, isFalse,
+          reason: 'an undecryptable backup must not be reported as restored');
+      expect(result.errorMessage, isNotNull);
+      expect(result.successfulItems, 0,
+          reason: 'nothing may be counted as imported from a failed decrypt');
     });
   });
 }

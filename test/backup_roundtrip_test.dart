@@ -9,6 +9,7 @@ import 'package:securepass_pro/services/backup_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/import_service.dart';
 import 'package:securepass_pro/services/vault_service.dart';
+import 'package:securepass_pro/services/workspace_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -58,13 +59,17 @@ void main() {
 
   test('an app-produced backup restores into the real vault', () async {
     final vault = VaultService();
+    // A real workspace the entries belong to, so the backup actually carries
+    // one and the restore has something to bring back.
+    final workspace = await WorkspaceService.instance
+        .createWorkspace('Work accounts', 'work logins');
     vault.addEntry(
       VaultEntry(
         id: 'entry-1',
         title: 'GitHub',
         type: VaultEntryType.password,
         value: 's3cr3t-p@ss',
-        workspaceId: 'default',
+        workspaceId: workspace.id,
         username: 'anya',
         isFavorite: true,
       ),
@@ -108,6 +113,49 @@ void main() {
     expect(github.value, 's3cr3t-p@ss');
     expect(github.username, 'anya');
     expect(github.isFavorite, isTrue);
+
+    // The workspace the entries belong to is restored too, keeping its id so
+    // the entries' workspaceId references still resolve instead of orphaning.
+    final restoredWorkspaces = WorkspaceService.instance.getWorkspaces();
+    final restoredWorkspace =
+        restoredWorkspaces.where((w) => w.id == workspace.id);
+    expect(restoredWorkspace, hasLength(1),
+        reason: 'the workspace in the backup must be restored under its own id');
+    expect(restoredWorkspace.single.name, 'Work accounts');
+  });
+
+  test('workspaces restore with their original id so vault links survive',
+      () async {
+    final workspace = await WorkspaceService.instance
+        .importWorkspace(<String, dynamic>{
+      'id': 'ws-original-id',
+      'name': 'Work',
+      'description': 'work accounts',
+    });
+    expect(workspace, isNotNull);
+    expect(workspace!.id, 'ws-original-id',
+        reason: 'the id must be preserved or restored vault entries orphan');
+
+    // The nested {"workspace": {...}} shape other importers produce still works.
+    final nested = await WorkspaceService.instance.importWorkspace(
+      <String, dynamic>{
+        'workspace': <String, dynamic>{'name': 'Nested', 'description': 'x'},
+      },
+    );
+    expect(nested, isNotNull);
+    expect(nested!.name, 'Nested');
+
+    // Re-importing the same backup is idempotent, not a duplicate.
+    final before = WorkspaceService.instance.getWorkspaces().length;
+    final again = await WorkspaceService.instance
+        .importWorkspace(<String, dynamic>{'id': 'ws-original-id', 'name': 'Work'});
+    expect(again, isNotNull);
+    expect(WorkspaceService.instance.getWorkspaces().length, before);
+
+    // A malformed entry is rejected cleanly instead of throwing.
+    final bad = await WorkspaceService.instance
+        .importWorkspace(<String, dynamic>{'no-name-here': true});
+    expect(bad, isNull);
   });
 
   test('the app envelope is recognised after a version bump guard', () async {

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/encrypted_storage.dart';
 
@@ -30,26 +31,49 @@ class EncryptionService {
   Future<void> initialize() async {
     if (_initialized) return;
 
+    String? storedKey;
     try {
-      final storedKey = await EncryptedStorage.instance.retrieve(_keyStorageKey);
-      if (storedKey != null && storedKey.isNotEmpty) {
-        _currentKey = SecretKey(base64Decode(storedKey));
-      } else {
-        await _createAndPersistKey();
-      }
+      storedKey = await EncryptedStorage.instance.retrieve(_keyStorageKey);
     } catch (e) {
-      AppLogger.instance.warning(
-        'Failed to restore encryption key, regenerating: $e',
+      // Fail closed. Silently generating a replacement key here would
+      // overwrite the only key able to decrypt the existing vault, making
+      // every stored credential permanently unreadable. Leave the service
+      // uninitialized instead: encrypt/decrypt then raise a clear error and
+      // the next launch retries reading the real key.
+      AppLogger.instance.error(
+        'Could not read the encryption key; keeping the stored key intact '
+        'instead of generating a new one: $e',
         category: 'ENCRYPTION',
       );
-      _currentKey = null;
+      return;
+    }
+
+    if (storedKey != null && storedKey.isNotEmpty) {
       try {
-        await _createAndPersistKey();
-      } catch (writeError) {
+        _currentKey = SecretKey(base64Decode(storedKey));
+      } on FormatException catch (e) {
+        // A corrupt stored value is equally irreplaceable: overwriting it
+        // would destroy the data it was protecting.
         AppLogger.instance.error(
-          'Failed to persist a new encryption key: $writeError',
+          'Stored encryption key is unreadable; refusing to replace it: $e',
           category: 'ENCRYPTION',
         );
+        return;
+      }
+    } else {
+      // Genuinely first run: there is no key to lose. A write failure here
+      // must still fail closed: initialize() callers (main.dart) do not
+      // catch, so letting it propagate would crash startup instead of
+      // retrying on the next launch.
+      try {
+        await _createAndPersistKey();
+      } catch (e) {
+        AppLogger.instance.error(
+          'Could not persist the new encryption key; will retry on next '
+          'launch: $e',
+          category: 'ENCRYPTION',
+        );
+        return;
       }
     }
 
@@ -60,13 +84,26 @@ class EncryptionService {
     );
   }
 
+  /// Clears the in-memory state so a test can exercise a fresh startup.
+  ///
+  /// The stored key is deliberately untouched, so tests still have to mock
+  /// the key store to control what [initialize] reads.
+  @visibleForTesting
+  void resetForTest() {
+    _initialized = false;
+    _currentKey = null;
+  }
+
   Future<void> _createAndPersistKey() async {
     final key = await _aesGcm.newSecretKey();
-    _currentKey = key;
     await EncryptedStorage.instance.store(
       _keyStorageKey,
       base64Encode(await key.extractBytes()),
     );
+    // Adopt the key only after it is durably stored: a key that encrypts
+    // in-memory but was never persisted would produce data that is
+    // unreadable after the next restart.
+    _currentKey = key;
   }
 
   Future<String> encrypt(String plaintext) async {
@@ -81,13 +118,23 @@ class EncryptionService {
 
   /// Decrypts [ciphertext] and returns the plaintext.
   ///
-  /// Returns an empty string when authentication fails, the ciphertext is
-  /// malformed, or decryption errors in any other way — this is
-  /// indistinguishable from a legitimately empty plaintext. Callers must
-  /// treat an empty result as a failure signal.
+  /// Throws [EncryptionException] when authentication fails, the ciphertext is
+  /// malformed, the service is not initialized, or decryption errors in any
+  /// other way. Failures are never reported as an empty string: a legitimately
+  /// empty plaintext would be indistinguishable from a corrupt or
+  /// wrong-key payload, and callers that treated it as valid could silently
+  /// act on a failed decrypt.
   Future<String> decrypt(String ciphertext) async {
+    final SecretKey key;
     try {
-      final key = _requireKey();
+      key = _requireKey();
+    } on EncryptionException {
+      rethrow;
+    } catch (e) {
+      throw EncryptionException('Decryption failed: $e');
+    }
+
+    try {
       final box = SecretBox.fromConcatenation(
         base64Decode(ciphertext),
         nonceLength: 12,
@@ -95,9 +142,17 @@ class EncryptionService {
       );
       final clearText = await _aesGcm.decrypt(box, secretKey: key);
       return utf8.decode(clearText);
+    } on EncryptionException {
+      rethrow;
     } catch (e) {
-      AppLogger.instance.error('Decryption failed', category: 'ENCRYPTION');
-      return '';
+      AppLogger.instance.error(
+        'Decryption failed (authentication tag, malformed input, or wrong key): $e',
+        category: 'ENCRYPTION',
+      );
+      throw const EncryptionException(
+        'Decryption failed: the data is corrupt, was encrypted with a '
+        'different key, or has been tampered with.',
+      );
     }
   }
 

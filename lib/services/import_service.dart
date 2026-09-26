@@ -3,8 +3,10 @@ import 'dart:convert';
 
 import 'package:securepass_pro/domain/entities/import_result.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/services/configuration_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
 import 'package:securepass_pro/services/vault_service.dart';
+import 'package:securepass_pro/services/workspace_service.dart';
 
 class ImportService {
   ImportService._();
@@ -39,8 +41,12 @@ class ImportService {
 
       final encryptedData = _extractEnvelopeData(jsonStr, decoded);
       if (encryptedData != null) {
-        final plain = await EncryptionService.instance.decrypt(encryptedData);
-        if (plain.isEmpty) {
+        // decrypt() throws on any failure, so a corrupt or wrong-key backup
+        // is reported as such instead of surfacing as an empty payload.
+        final String plain;
+        try {
+          plain = await EncryptionService.instance.decrypt(encryptedData);
+        } on EncryptionException {
           return const ImportResult(
             success: false,
             totalItems: 0,
@@ -190,6 +196,65 @@ class ImportService {
             ),
           );
         }
+      }
+    }
+
+    // BackupService writes these keys too; accepting them in
+    // validateImportData is only honest if they are actually applied.
+    if (data['config'] is Map) {
+      try {
+        await ConfigurationService.instance.importConfig(
+          Map<String, dynamic>.from(data['config'] as Map),
+        );
+        importedItems.add(
+          const ImportedItem(
+            type: 'config',
+            name: 'App settings',
+            message: 'Imported successfully',
+          ),
+        );
+      } catch (error) {
+        AppLogger.instance.error(
+          'Settings restore failed: $error',
+          category: 'ImportService',
+        );
+        importedItems.add(
+          const ImportedItem(
+            type: 'config',
+            name: 'App settings',
+            success: false,
+            message: 'Could not write the restored settings',
+          ),
+        );
+      }
+    }
+
+    if (data['workspaces'] is List) {
+      for (final workspace in data['workspaces'] as List<dynamic>) {
+        if (workspace is! Map) {
+          importedItems.add(
+            const ImportedItem(
+              type: 'workspaces',
+              name: 'Workspace',
+              success: false,
+              message: 'Malformed workspace entry',
+            ),
+          );
+          continue;
+        }
+        final restored = await WorkspaceService.instance.importWorkspace(
+          Map<String, dynamic>.from(workspace),
+        );
+        importedItems.add(
+          ImportedItem(
+            type: 'workspaces',
+            name: workspace['name']?.toString() ?? 'Workspace',
+            success: restored != null,
+            message: restored != null
+                ? 'Imported successfully'
+                : 'Could not write the restored workspace',
+          ),
+        );
       }
     }
 

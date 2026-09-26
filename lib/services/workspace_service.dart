@@ -144,18 +144,42 @@ class WorkspaceService {
 
   Future<WorkspaceMetadata?> importWorkspace(Map<String, dynamic> data) async {
     try {
-      final wsData = data['workspace'] as Map<String, dynamic>;
+      // Two shapes are accepted: a nested {"workspace": {...}} map, and the
+      // flat WorkspaceMetadata.toMap() that BackupService.exportBackup writes.
+      final wsData = (data['workspace'] is Map)
+          ? Map<String, dynamic>.from(data['workspace'] as Map)
+          : data;
+      final name = wsData['name'];
+      if (name is! String || name.isEmpty) {
+        throw const FormatException('workspace has no name');
+      }
+      // The id is preserved when present: vault entries reference their
+      // workspace by id, so minting a new one would orphan them. It is also
+      // de-duplicated, so re-importing the same backup is idempotent.
+      final existingId = wsData['id'];
+      final id = existingId is String && existingId.isNotEmpty
+          ? existingId
+          : const Uuid().v4();
+      final existing = _workspaces.where((w) => w.id == id);
+      if (existing.isNotEmpty) {
+        AppLogger.instance.info(
+          'Workspace already present, keeping existing: $name',
+          category: 'WORKSPACE',
+        );
+        return existing.first;
+      }
       final workspace = WorkspaceMetadata(
-        id: const Uuid().v4(),
-        name: wsData['name'] as String,
+        id: id,
+        name: name,
         description: wsData['description'] as String? ?? '',
+        isActive: wsData['isActive'] as bool? ?? false,
       );
       _workspaces.add(workspace);
       await _saveToStorage();
       AppLogger.instance.info('Workspace imported: ${workspace.name}', category: 'WORKSPACE');
       return workspace;
     } catch (e) {
-      AppLogger.instance.error('Failed to import workspace', category: 'WORKSPACE');
+      AppLogger.instance.error('Failed to import workspace: $e', category: 'WORKSPACE');
       return null;
     }
   }

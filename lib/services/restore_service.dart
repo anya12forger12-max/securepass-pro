@@ -57,11 +57,11 @@ class RestoreService {
       if (envelope is Map<String, dynamic> &&
           envelope['enc'] == true &&
           envelope['data'] is String) {
+        // decrypt() throws EncryptionException on a corrupt or wrong-key
+        // payload; restoreFromBackup's catch turns that into a clean false
+        // rather than an empty backup being reported as valid.
         final plaintext =
             await EncryptionService.instance.decrypt(envelope['data'] as String);
-        if (plaintext.isEmpty) {
-          throw const FormatException('Decrypted backup is empty or corrupt');
-        }
         final decoded = jsonDecode(plaintext);
         if (decoded is Map<String, dynamic>) {
           return decoded;
