@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:securepass_pro/core/security/clipboard_service.dart' as core;
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
+import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/services/lifecycle_service.dart';
 
 class ClipboardStatus {
@@ -23,6 +24,9 @@ class EnhancedClipboardService {
   EnhancedClipboardService._();
   static final EnhancedClipboardService _instance = EnhancedClipboardService._();
   static EnhancedClipboardService get instance => _instance;
+
+  /// Persisted so an auto-clear deadline survives a process kill.
+  static const String _deadlineKey = 'clipboard_auto_clear_deadline';
 
   core.ClipboardService? _lazyCoreClipboard;
   bool _initialized = false;
@@ -48,7 +52,43 @@ class EnhancedClipboardService {
     _monitoringEnabled = monitoring;
     LifecycleService.instance.addListener(_handleLifecycleChange);
     _initialized = true;
+    await clearStaleClipboardOnStartup();
     AppLogger.instance.info('Enhanced clipboard service initialized', category: 'CLIPBOARD');
+  }
+
+  /// Clears a secret left on the clipboard by a previous process.
+  ///
+  /// The in-memory auto-clear timer cannot survive a process kill, so the
+  /// deadline is persisted. On the next launch, an already-overdue deadline
+  /// means a secret would otherwise sit on the clipboard indefinitely.
+  @visibleForTesting
+  Future<bool> clearStaleClipboardOnStartup() async {
+    final stored = PreferencesStorage.instance.getString(_deadlineKey);
+    if (stored == null) return false;
+    await PreferencesStorage.instance.remove(_deadlineKey);
+    final deadline = DateTime.tryParse(stored);
+    if (deadline == null) return false;
+    if (DateTime.now().isBefore(deadline)) return false;
+    await _coreClipboard.clearClipboard();
+    AppLogger.instance.info(
+      'Cleared a clipboard secret left over from a previous session',
+      category: 'CLIPBOARD',
+    );
+    return true;
+  }
+
+  void _persistDeadline() {
+    final deadline = _autoClearDeadline;
+    if (deadline == null) {
+      unawaited(PreferencesStorage.instance.remove(_deadlineKey));
+    } else {
+      unawaited(
+        PreferencesStorage.instance.setString(
+          _deadlineKey,
+          deadline.toIso8601String(),
+        ),
+      );
+    }
   }
 
   Future<bool> copy(String text, {bool autoClear = true}) async {
@@ -61,6 +101,7 @@ class EnhancedClipboardService {
       _lastCopyTime = DateTime.now();
       _autoClearEnabled = autoClear;
       _autoClearDeadline = duration != null ? DateTime.now().add(duration) : null;
+      _persistDeadline();
       AppLogger.instance.debug('Clipboard: text copied (autoClear: $autoClear)', category: 'CLIPBOARD');
     }
     return result;
@@ -77,6 +118,7 @@ class EnhancedClipboardService {
       _lastCopyTime = DateTime.now();
       _autoClearEnabled = true;
       _autoClearDeadline = DateTime.now().add(Duration(seconds: durationSeconds));
+      _persistDeadline();
     }
     return result;
   }
@@ -90,6 +132,7 @@ class EnhancedClipboardService {
     if (result) {
       _lastClearTime = DateTime.now();
       _autoClearDeadline = null;
+      _persistDeadline();
       AppLogger.instance.debug('Clipboard cleared manually', category: 'CLIPBOARD');
     }
     return result;

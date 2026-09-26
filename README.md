@@ -2,7 +2,7 @@
 
 **Professional Privacy-First Password & Credential Generator**
 
-SecurePass Pro is a free, offline-first credential toolkit built with Flutter. It generates strong, cryptographically random passwords, passphrases, PINs, and UUIDs; grades every result with real entropy and strength analysis; and keeps your saved credentials and favorites locked in an **encrypted, on-device vault** — no account, no cloud, no tracking.
+SecurePass Pro is a free, offline-first credential toolkit built with Flutter. It generates strong, cryptographically random passwords, passphrases, PINs, and UUIDs; grades every result with real entropy and strength analysis; and keeps your saved credentials and favorites locked in an **encrypted, on-device vault**. Your vault is local by default: there is no account, no cloud sync, and no application server that ever receives your vault or password contents. See [Privacy](#-privacy) for exactly what leaves the device.
 
 ## Features
 
@@ -34,13 +34,14 @@ SecurePass Pro is a free, offline-first credential toolkit built with Flutter. I
 
 ### ☁️ Encrypted Backups
 - Export and restore your vault with real authenticated encryption (envelope format `{"v":1,"enc":true,"data":"<base64>"}`)
-- Nothing on your device is ever decrypted or readable by anyone but you
+- Backups are copied to your clipboard as an encrypted JSON envelope — **the app never uploads anything**. If you paste that envelope into a third-party storage provider (Drive, email, notes) you choose, that provider then applies its own retention, access, and metadata policies.
+- Restore also works from a pasted envelope, so you can recover your vault without reinstalling.
 
 ### 🤫 Privacy
-- **100% offline & local** — no accounts, no telemetry, no cloud sync
-- Auto-clearing clipboard for copied secrets
+- **100% offline & local vault** — no accounts, no cloud sync, no application server. Your vault, passwords, and credentials never leave the device.
+- Auto-clearing clipboard for copied secrets, including after the app is killed (the auto-clear deadline is persisted, so a secret left on the clipboard is wiped on the next launch)
 - Optional on-device auto-lock and security settings
-- Ads are fully blocked until you give consent (Google UMP, fail-closed)
+- **Advertising is the one exception to "nothing leaves the device"**: ads are served by Google AdMob. With your consent, Google may process your Advertising ID, IP address, and ad-interaction data to serve and measure ads. AdMob never receives your vault or password contents. Ads stay blocked until you consent where required (Google UMP, fail-closed).
 
 ### 📱 Extras
 - 🎨 Theme Studio — light/dark/custom themes
@@ -92,8 +93,9 @@ Latest signed prebuilt release (APK + AAB): see the [Releases](https://github.co
 ## Known Limitations
 
 - The vault is stored **only on this device**, encrypted with AES-GCM using a PBKDF2-HMAC-SHA256-derived key. There is no account and no cloud sync.
-- Uninstalling the app deletes the vault unless an encrypted backup was exported first.
-- AdMob consent (EEA/UK) follows Google's UMP; ads stay disabled until consent is given where required.
+- **Backups are device-bound.** The encryption key lives in this device's secure storage and is never included in the backup file, so an exported envelope can only be restored on the device that created it. Restoring on a new device is not currently supported. Keep a backup for data-loss recovery on this device, not as a migration path.
+- Uninstalling the app deletes the vault **and** the device key unless an encrypted backup was exported first — but see the limitation above before relying on that.
+- AdMob consent (EEA/UK) follows Google's UMP; ads stay disabled until consent is given where required. With consent, Google may process your Advertising ID and ad-interaction data (see [Privacy](#-privacy)).
 
 ## Technology Stack
 

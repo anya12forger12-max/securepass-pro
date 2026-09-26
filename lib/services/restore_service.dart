@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/services/configuration_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
+import 'package:securepass_pro/services/runtime_info_service.dart';
 import 'package:securepass_pro/services/workspace_service.dart';
 
 class RestoreService {
@@ -73,14 +74,14 @@ class RestoreService {
   bool validateBackup(Map<String, dynamic> backupData) {
     if (backupData.isEmpty) return false;
 
-    final metadata = backupData['metadata'] as Map<String, dynamic>?;
-    if (metadata == null) return false;
+    final metadata = backupData['metadata'];
+    if (metadata is! Map) return false;
 
-    final version = metadata['version'] as String?;
-    if (version == null || version.isEmpty) return false;
+    final version = metadata['version'];
+    if (version is! String || version.isEmpty) return false;
 
-    final name = metadata['name'] as String?;
-    if (name == null || name.isEmpty) return false;
+    final name = metadata['name'];
+    if (name is! String || name.isEmpty) return false;
 
     return true;
   }
@@ -90,8 +91,9 @@ class RestoreService {
       return {'valid': false, 'error': 'Invalid backup format'};
     }
 
-    final metadata = backupData['metadata'] as Map<String, dynamic>? ?? {};
-    final data = backupData['data'] as Map<String, dynamic>? ?? {};
+    final metadata = backupData['metadata'] as Map;
+    final rawData = backupData['data'];
+    final data = rawData is Map ? rawData : const <String, dynamic>{};
 
     return {
       'valid': true,
@@ -108,13 +110,25 @@ class RestoreService {
   String getCompatibilityStatus(Map<String, dynamic> backupData) {
     if (!validateBackup(backupData)) return 'incompatible';
 
-    final metadata = backupData['metadata'] as Map<String, dynamic>? ?? {};
+    final metadata = backupData['metadata'] as Map;
     final backupVersion = metadata['version'] as String? ?? '0.0.0';
 
-    const currentVersion = '1.0.0';
+    final currentVersion =
+        RuntimeInfoService.instance.versionLabel.split('+').first;
 
     if (backupVersion == currentVersion) return 'compatible';
-    if (backupVersion.compareTo(currentVersion) < 0) return 'compatible';
+    if (_compareVersions(backupVersion, currentVersion) < 0) return 'compatible';
     return 'may_require_update';
+  }
+
+  int _compareVersions(String a, String b) {
+    final aParts = a.split('.');
+    final bParts = b.split('.');
+    for (var i = 0; i < 3; i++) {
+      final aPart = int.tryParse(i < aParts.length ? aParts[i] : '0') ?? 0;
+      final bPart = int.tryParse(i < bParts.length ? bParts[i] : '0') ?? 0;
+      if (aPart != bPart) return aPart.compareTo(bPart);
+    }
+    return 0;
   }
 }

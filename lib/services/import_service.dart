@@ -1,13 +1,23 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:securepass_pro/domain/entities/import_result.dart';
 import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
+import 'package:securepass_pro/services/vault_service.dart';
 
 class ImportService {
   ImportService._();
   static final ImportService _instance = ImportService._();
   static ImportService get instance => _instance;
+
+  /// Highest encrypted-backup envelope version this build can read.
+  ///
+  /// Backups are written by [BackupService] as `{"v":1,"enc":true,"data":…}`.
+  /// A backup declaring a version this build does not understand is rejected
+  /// rather than decrypted on a guess, so a future format can never be
+  /// misread as the current one.
+  static const int supportedEnvelopeVersion = 1;
 
   int _importCount = 0;
 
@@ -41,10 +51,10 @@ class ImportService {
                 'Failed to decrypt encrypted import data: invalid or corrupted encryption',
           );
         }
-        return _parseImport(jsonDecode(plain));
+        return await _parseImport(jsonDecode(plain));
       }
 
-      return _parseImport(decoded);
+      return await _parseImport(decoded);
     } catch (e) {
       AppLogger.instance.error(
         'Import failed: $e',
@@ -76,13 +86,39 @@ class ImportService {
       }
     }
     if (candidate == null) return null;
+
+    // A BackupService export wraps the envelope one level deeper, as
+    // {"metadata":…, "data":"{\"v\":1,\"enc\":true,\"data\":\"<b64>\"}"}.
+    // Unwrap that shape so the app's own backups are restorable.
+    final nested = candidate['data'];
+    if (nested is String && candidate['enc'] != true) {
+      try {
+        final unwrapped = jsonDecode(nested);
+        if (unwrapped is Map<String, dynamic>) {
+          candidate = unwrapped;
+        }
+      } catch (_) {
+        return null;
+      }
+    }
+
     if (candidate['enc'] != true) return null;
+
+    final version = candidate['v'];
+    if (version is int && version > supportedEnvelopeVersion) {
+      AppLogger.instance.warning(
+        'Rejected backup with unsupported envelope version: $version',
+        category: 'ImportService',
+      );
+      return null;
+    }
+
     final data = candidate['data'];
     if (data is String && data.isNotEmpty) return data;
     return null;
   }
 
-  ImportResult _parseImport(dynamic decoded) {
+  Future<ImportResult> _parseImport(dynamic decoded) async {
     Map<String, dynamic> data;
     if (decoded is Map<String, dynamic>) {
       if (decoded.containsKey('data') && decoded['data'] is Map) {
@@ -127,9 +163,34 @@ class ImportService {
     }
 
     if (data.containsKey('vault') && data['vault'] is List) {
-      importedItems.addAll(
-        _importVault(data['vault'] as List<dynamic>),
-      );
+      final results = _importVault(data['vault'] as List<dynamic>);
+      importedItems.addAll(results);
+      if (results.any((i) => i.success)) {
+        // Awaited: a reported success must mean the data is really persisted,
+        // otherwise the user is told a restore worked before it happened.
+        try {
+          await VaultService().importFromMap({
+            'entries': data['vault'],
+            'folders': data['folders'],
+          });
+        } catch (error) {
+          AppLogger.instance.error(
+            'Vault restore failed: $error',
+            category: 'ImportService',
+          );
+          for (final item in results) {
+            importedItems.remove(item);
+          }
+          importedItems.add(
+            const ImportedItem(
+              type: 'vault',
+              name: 'Vault restore',
+              success: false,
+              message: 'Could not write the restored vault',
+            ),
+          );
+        }
+      }
     }
 
     if (data.containsKey('recipes') && data['recipes'] is List) {
@@ -244,13 +305,17 @@ class ImportService {
   bool validateImportData(Map<String, dynamic> data) {
     if (data.isEmpty) return false;
 
-    final validKeys = {
+    const validKeys = {
       'history',
       'favorites',
       'vault',
       'recipes',
       'tags',
       'settings',
+      // Keys written by BackupService.exportBackup.
+      'config',
+      'workspaces',
+      'folders',
     };
 
     return data.keys.any(validKeys.contains);

@@ -401,16 +401,15 @@ class _BackupDialogState extends State<_BackupDialog> {
   Future<void> _createBackup() async {
     setState(() => _busy = true);
     try {
-      final backup = await BackupService.instance.createBackup(
-        isEncrypted: true,
-      );
+      final backup = await BackupService.instance.createBackup();
       final exported = await BackupService.instance.exportBackup(backup.id);
       if (exported == null) throw StateError('Backup export produced no data');
       final json = jsonEncode(exported);
       await EnhancedClipboardService.instance.copy(json);
       if (!mounted) return;
       _show(
-        'Encrypted backup copied to clipboard and auto-clears shortly.',
+        'Encrypted backup copied to clipboard. It clears shortly, and it can '
+        'only be restored on this device.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -464,10 +463,20 @@ class _BackupDialogState extends State<_BackupDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Create an encrypted snapshot of your vault and clipboard-export '
-              'it, or paste a backup below to restore.',
+              'Create an encrypted snapshot of your vault and copy it to the '
+              'clipboard, or paste a backup below to restore.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Backups are tied to this device: the encryption key is not part '
+              'of the backup file, so a backup can only be restored here — not '
+              'on a new phone. Uninstalling the app deletes the vault and that '
+              'key.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
               ),
             ),
             const SizedBox(height: 16),

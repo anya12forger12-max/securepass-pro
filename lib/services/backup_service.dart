@@ -6,7 +6,9 @@ import 'package:securepass_pro/infrastructure/logging/app_logger.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 import 'package:securepass_pro/services/configuration_service.dart';
 import 'package:securepass_pro/services/encryption_service.dart';
+import 'package:securepass_pro/services/import_service.dart';
 import 'package:securepass_pro/services/runtime_info_service.dart';
+import 'package:securepass_pro/services/vault_service.dart';
 import 'package:securepass_pro/services/workspace_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -77,7 +79,7 @@ class BackupService {
     bool includeSettings = true,
     bool includeWorkspaces = true,
     bool includePreferences = true,
-    bool isEncrypted = false,
+    bool isEncrypted = true,
   }) async {
     final id = const Uuid().v4();
     final backupName = name ?? 'Backup ${DateTime.now().toIso8601String()}';
@@ -139,16 +141,20 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
     };
 
+    // One snapshot so the exported payload is internally consistent.
+    final vault = VaultService().exportAsMap();
     final plainPayload = <String, dynamic>{
       'config': ConfigurationService.instance.getFullConfig(),
       'workspaces': WorkspaceService.instance.getWorkspaces().map((w) => w.toMap()).toList(),
+      'vault': vault['entries'],
+      'folders': vault['folders'],
     };
 
     if (backup.isEncrypted) {
       final ciphertext =
           await EncryptionService.instance.encrypt(jsonEncode(plainPayload));
       exportData['data'] = jsonEncode({
-        'v': 1,
+        'v': ImportService.supportedEnvelopeVersion,
         'enc': true,
         'data': ciphertext,
       });
