@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,12 @@ void main() {
     await PreferencesStorage.instance.init();
   });
 
-  testWidgets('first launch shows onboarding, then login setup, then home',
+  String hashPassword(String email, String password) {
+    final bytes = utf8.encode('securepass_login:$email:$password');
+    return base64Encode(bytes);
+  }
+
+  testWidgets('first launch shows onboarding, then login, then home',
       (tester) async {
     final container = ProviderContainer();
     await tester.pumpWidget(
@@ -29,17 +35,25 @@ void main() {
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
 
+    await tester.enterText(find.byType(TextField).first, 'test@example.com');
+    await tester.enterText(find.byType(TextField).last, 'password123');
+    await tester.ensureVisible(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('Set Up Your PIN'), findsOneWidget);
+    expect(find.text('Welcome Back'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).first, '1234');
-    await tester.enterText(find.byType(TextField).last, '1234');
-    await tester.tap(find.text('Set PIN'));
+    await tester.enterText(find.byType(TextField).first, 'test@example.com');
+    await tester.enterText(find.byType(TextField).last, 'password123');
+    await tester.ensureVisible(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
 
     expect(find.byType(HomeScreen), findsOneWidget);
@@ -54,7 +68,15 @@ void main() {
     container.dispose();
   });
 
-  testWidgets('skip setup also goes through login setup', (tester) async {
+  testWidgets('login screen rejects incorrect password', (tester) async {
+    await PreferencesStorage.instance.setBool(
+      AppConstants.onboardingCompleteKey,
+      true,
+    );
+    await PreferencesStorage.instance.setString(
+      AppConstants.loginPinKey,
+      hashPassword('test@example.com', 'password123'),
+    );
     final container = ProviderContainer();
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -64,24 +86,28 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.enterText(find.byType(TextField).first, 'test@example.com');
+    await tester.enterText(find.byType(TextField).last, 'wrongpassword');
+    await tester.ensureVisible(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Skip Setup'));
+    await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('Set Up Your PIN'), findsOneWidget);
+    expect(find.text('Invalid email or password.'), findsOneWidget);
     container.dispose();
   });
 
-  testWidgets('login screen unlocks with correct PIN', (tester) async {
+  testWidgets('login screen blocks submit without consent', (tester) async {
     await PreferencesStorage.instance.setBool(
       AppConstants.onboardingCompleteKey,
       true,
     );
     await PreferencesStorage.instance.setString(
       AppConstants.loginPinKey,
-      'c2VjdXJlcGFzc19sb2dpbjoxMjM0',
+      hashPassword('test@example.com', 'password123'),
     );
     final container = ProviderContainer();
     await tester.pumpWidget(
@@ -92,41 +118,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('Welcome Back'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField).first, '1234');
-    await tester.tap(find.text('Unlock'));
+    await tester.enterText(find.byType(TextField).first, 'test@example.com');
+    await tester.enterText(find.byType(TextField).last, 'password123');
     await tester.pumpAndSettle();
-
-    expect(find.byType(HomeScreen), findsOneWidget);
-    container.dispose();
-  });
-
-  testWidgets('login screen rejects incorrect PIN', (tester) async {
-    await PreferencesStorage.instance.setBool(
-      AppConstants.onboardingCompleteKey,
-      true,
-    );
-    await PreferencesStorage.instance.setString(
-      AppConstants.loginPinKey,
-      'c2VjdXJlcGFzc19sb2dpbjoxMjM0',
-    );
-    final container = ProviderContainer();
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const ProviderScope(child: SecurePassApp()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField).first, '9999');
-    await tester.tap(find.text('Unlock'));
+    await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('Incorrect PIN. Please try again.'), findsOneWidget);
+    expect(
+      find.text('You must explicitly accept the Privacy Policy to proceed.'),
+      findsOneWidget,
+    );
     container.dispose();
   });
 }
