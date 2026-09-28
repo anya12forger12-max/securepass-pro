@@ -3,15 +3,22 @@ import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
-  Future<void> _complete(BuildContext context) async {
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  var _privacyAccepted = false;
+
+  Future<void> _complete() async {
     await PreferencesStorage.instance.setBool(
       AppConstants.onboardingCompleteKey,
       true,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
     context.go('/home');
   }
 
@@ -22,13 +29,15 @@ class OnboardingScreen extends StatelessWidget {
 
     return Scaffold(
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Icon(
                   Icons.shield,
                   size: 96,
@@ -49,19 +58,54 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+                Semantics(
+                  label: 'Privacy policy consent checkbox',
+                  child: CheckboxListTile(
+                    title: const Text(
+                      'I explicitly accept the Privacy Policy to use SecurePass Pro.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    value: _privacyAccepted,
+                    onChanged: (v) => setState(() => _privacyAccepted = v ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: () => _complete(context),
+                  onPressed: _privacyAccepted
+                      ? _complete
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'You must explicitly accept the Privacy Policy to proceed.',
+                              ),
+                            ),
+                          );
+                        },
                   child: const Text('Get Started'),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () => _complete(context),
+                  onPressed: _privacyAccepted
+                      ? _complete
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'You must explicitly accept the Privacy Policy to proceed.',
+                              ),
+                            ),
+                          );
+                        },
                   child: const Text('Skip Setup'),
                 ),
               ],
             ),
           ),
+        ),
         ),
       ),
     );

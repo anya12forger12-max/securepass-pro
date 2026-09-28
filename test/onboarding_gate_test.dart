@@ -27,6 +27,8 @@ void main() {
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
 
+    await tester.tap(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
 
@@ -49,6 +51,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('I explicitly accept the Privacy Policy to use SecurePass Pro.'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Skip Setup'));
     await tester.pumpAndSettle();
 
