@@ -9,7 +9,7 @@ class LoginNotifier extends StateNotifier<LoginState> {
   LoginNotifier() : super(const LoginState());
 
   void authenticate() => state = const LoginState(isAuthenticated: true);
-  void logout() => state = const LoginState(isAuthenticated: false);
+  void logout() => state = const LoginState();
 }
 
 final loginStateProvider =
