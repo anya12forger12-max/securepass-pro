@@ -36,4 +36,5 @@ abstract final class AppConstants {
   static const String themeModeKey = 'theme_mode';
   static const String accentColorKey = 'accent_color';
   static const String onboardingCompleteKey = 'onboarding_complete';
+  static const String loginPinKey = 'login_pin_hash';
 }

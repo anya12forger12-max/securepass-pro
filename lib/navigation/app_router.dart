@@ -17,6 +17,8 @@ import 'package:securepass_pro/features/help/presentation/screens/help_screen.da
 import 'package:securepass_pro/features/theme_studio/presentation/screens/theme_studio_screen.dart';
 import 'package:securepass_pro/features/workspace/presentation/screens/workspace_screen.dart';
 import 'package:securepass_pro/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:securepass_pro/features/login/presentation/screens/login_screen.dart';
+import 'package:securepass_pro/features/login/presentation/providers/login_state.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -34,6 +36,17 @@ bool _onboardingComplete() {
   }
 }
 
+bool _loginPinSet() {
+  try {
+    return PreferencesStorage.instance.getString(
+          AppConstants.loginPinKey,
+        ) !=
+        null;
+  } catch (_) {
+    return false;
+  }
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -42,6 +55,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -156,8 +173,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
+      final isAuthenticated = ref.read(loginStateProvider).isAuthenticated;
       if (state.matchedLocation == '/home' && !_onboardingComplete()) {
         return '/onboarding';
+      }
+      if (state.matchedLocation == '/home' &&
+          _loginPinSet() &&
+          !isAuthenticated) {
+        return '/login';
       }
       return null;
     },

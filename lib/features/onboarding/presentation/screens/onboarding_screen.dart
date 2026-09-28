@@ -19,7 +19,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       true,
     );
     if (!mounted) return;
-    context.go('/home');
+    context.go('/login');
   }
 
   @override
