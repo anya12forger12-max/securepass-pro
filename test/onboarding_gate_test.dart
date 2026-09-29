@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
+import 'package:securepass_pro/features/login/domain/auth_service.dart';
 import 'package:securepass_pro/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:securepass_pro/features/login/presentation/screens/login_screen.dart';
 import 'package:securepass_pro/features/home/presentation/screens/home_screen.dart';
@@ -15,6 +16,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     await PreferencesStorage.instance.init();
+    AuthService().pbkdf2IterationsOverride = 1000;
   });
 
   String hashPassword(String email, String password) {

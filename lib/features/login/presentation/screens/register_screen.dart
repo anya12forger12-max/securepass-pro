@@ -4,18 +4,20 @@ import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/features/login/domain/auth_service.dart';
 import 'package:securepass_pro/features/login/presentation/providers/login_state.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   var _obscurePassword = true;
+  var _obscureConfirm = true;
   var _privacyAccepted = false;
   String? _error;
   bool _busy = false;
@@ -24,10 +26,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_privacyAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,19 +44,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _busy = true;
       _error = null;
     });
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final ok = await AuthService().verify(email, password);
-    if (!mounted) return;
-    if (ok) {
-      ref.read(loginStateProvider.notifier).authenticate();
-      context.go('/home');
+    try {
+      await AuthService().createAccount(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'Could not create your account. Please try again.';
+      });
       return;
     }
-    setState(() {
-      _busy = false;
-      _error = 'Invalid email or password.';
-    });
+    if (!mounted) return;
+    ref.read(loginStateProvider.notifier).authenticate();
+    context.go('/home');
   }
 
   @override
@@ -73,19 +79,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.lock_outline,
+                    Icons.person_add_alt_1,
                     size: 72,
                     color: colorScheme.primary,
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Welcome Back',
+                    'Create Account',
                     style: theme.textTheme.headlineMedium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to your account.',
+                    'Create a local account to protect your vault.',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -104,8 +110,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        final trimmed = value?.trim() ?? '';
+                        if (trimmed.isEmpty) {
                           return 'Please enter your email';
+                        }
+                        if (!trimmed.contains('@')) {
+                          return 'Please enter a valid email';
                         }
                         return null;
                       },
@@ -117,8 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _signIn(),
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outlined),
@@ -137,7 +146,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
+                          return 'Please enter a password';
+                        }
+                        if (value.length < 4) {
+                          return 'Password must be at least 4 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Semantics(
+                    label: 'Confirm password input field',
+                    child: TextFormField(
+                      controller: _confirmController,
+                      obscureText: _obscureConfirm,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText: 'Confirm password',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () =>
+                              setState(() => _obscureConfirm = !_obscureConfirm),
+                          tooltip:
+                              _obscureConfirm ? 'Show password' : 'Hide password',
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != _passwordController.text) {
+                          return 'Passwords do not match';
                         }
                         return null;
                       },
@@ -152,50 +199,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: TextStyle(fontSize: 13),
                       ),
                       value: _privacyAccepted,
-                      onChanged: (v) => setState(() => _privacyAccepted = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _privacyAccepted = v ?? false),
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Semantics(
+                      label: 'Error message',
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: colorScheme.error),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
                   Semantics(
-                    label: 'Error message',
-                    child: Text(
-                      _error!,
-                      style: TextStyle(color: colorScheme.error),
-                      textAlign: TextAlign.center,
+                    label: 'Create account button',
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: _busy ? null : _submit,
+                        child: _busy
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Create Account'),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () {
+                            if (AuthService().hasAccount) {
+                              context.go('/login');
+                            } else {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                    child: const Text('Back to Sign In'),
+                  ),
                 ],
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: _busy ? null : () => context.go('/register'),
-                    child: const Text('Create Account'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Semantics(
-                  label: 'Sign in button',
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: _busy ? null : _signIn,
-                      child: _busy
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Sign In'),
-                    ),
-                  ),
-                ),
-              ],
               ),
             ),
           ),

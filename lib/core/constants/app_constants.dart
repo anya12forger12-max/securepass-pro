@@ -2,7 +2,7 @@ abstract final class AppConstants {
   AppConstants._();
 
   static const String appName = 'SecurePass Pro';
-  static const String appVersion = '2.2.28';
+  static const String appVersion = '2.2.30';
   static const String appBuildNumber = '1';
   static const String appDescription =
       'Enterprise-grade password management and security platform';
@@ -37,4 +37,5 @@ abstract final class AppConstants {
   static const String accentColorKey = 'accent_color';
   static const String onboardingCompleteKey = 'onboarding_complete';
   static const String loginPinKey = 'login_pin_hash';
+  static const String loginEmailKey = 'login_email';
 }

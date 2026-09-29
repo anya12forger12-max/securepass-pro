@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
+import 'package:securepass_pro/features/login/domain/auth_service.dart';
 import 'package:securepass_pro/infrastructure/storage/preferences_storage.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -17,17 +17,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _passwordController = TextEditingController();
   var _obscurePassword = true;
   var _privacyAccepted = false;
+  bool _busy = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  String _hashPassword(String email, String password) {
-    final bytes = utf8.encode('securepass_login:$email:$password');
-    return base64Encode(bytes);
   }
 
   Future<void> _complete() async {
@@ -40,13 +36,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
+    setState(() => _busy = true);
+    try {
+      await AuthService().createAccount(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    if (!mounted) return;
+    context.go('/login');
+  }
+
+  Future<void> _skip() async {
     await PreferencesStorage.instance.setBool(
       AppConstants.onboardingCompleteKey,
       true,
-    );
-    await PreferencesStorage.instance.setString(
-      AppConstants.loginPinKey,
-      _hashPassword(_emailController.text.trim(), _passwordController.text),
     );
     if (!mounted) return;
     context.go('/login');
@@ -161,12 +167,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: _complete,
+                      onPressed: _busy ? null : _complete,
                       child: const Text('Get Started'),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(
-                      onPressed: _complete,
+                      onPressed: _busy ? null : _skip,
                       child: const Text('Skip Setup'),
                     ),
                   ],

@@ -1,16 +1,36 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/domain/enums/notification_type.dart';
+import 'package:securepass_pro/features/login/domain/auth_service.dart';
+import 'package:securepass_pro/features/login/presentation/providers/login_state.dart';
 import 'package:securepass_pro/services/backup_service.dart';
 import 'package:securepass_pro/services/clipboard_service.dart';
 import 'package:securepass_pro/services/import_service.dart';
 import 'package:securepass_pro/services/notification_service.dart';
 import 'package:securepass_pro/services/vault_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  Future<void> _handleAccount(BuildContext context) async {
+    final auth = AuthService();
+    final isAuthed = ref.read(loginStateProvider).isAuthenticated;
+    if (auth.hasAccount && isAuthed) {
+      ref.read(loginStateProvider.notifier).logout();
+      if (!context.mounted) return;
+      context.go('/login');
+      return;
+    }
+    context.go('/login');
+  }
 
   void _openAppearance(BuildContext context) => context.go('/theme-studio');
 
@@ -50,6 +70,26 @@ class SettingsScreen extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
+                Builder(builder: (context) {
+                  final auth = AuthService();
+                  final isAuthed = ref.read(loginStateProvider).isAuthenticated;
+                  final signedIn = auth.hasAccount && isAuthed;
+                  return Card(
+                    child: ListTile(
+                      leading: Icon(
+                        signedIn ? Icons.logout : Icons.account_circle,
+                      ),
+                      title: Text(signedIn ? 'Sign Out' : 'Sign In'),
+                      subtitle: Text(
+                        signedIn
+                            ? 'Signed in as ${auth.signedInEmail ?? 'your account'}'
+                            : 'Create or sign in to a local account',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _handleAccount(context),
+                    ),
+                  );
+                }),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.palette),
