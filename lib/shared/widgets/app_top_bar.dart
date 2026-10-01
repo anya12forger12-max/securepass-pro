@@ -18,17 +18,13 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
-          bottom: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.2),
-          ),
+          bottom: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
         ),
       ),
       child: Row(
         children: [
           const SizedBox(width: SpacingConstants.md),
-          Expanded(
-            child: _SearchBar(colorScheme: colorScheme),
-          ),
+          Expanded(child: _SearchBar(colorScheme: colorScheme)),
           const SizedBox(width: SpacingConstants.sm),
           IconButton(
             onPressed: () {},
@@ -54,6 +50,13 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The Ctrl+K badge is a desktop keyboard affordance, meaningless on a
+    // phone, and it is the one child of this row that cannot shrink. It is
+    // also what overflowed the row on narrow screens (7.5px at 240dp wide),
+    // because the search field's Expanded sibling is already at zero width by
+    // then. Drop it rather than squeeze the field further.
+    final showShortcutHint = MediaQuery.of(context).size.width >= 400;
+
     return Container(
       height: 36,
       decoration: BoxDecoration(
@@ -81,24 +84,25 @@ class _SearchBar extends StatelessWidget {
               onChanged: (value) {},
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.3),
+          if (showShortcutHint)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                'Ctrl+K',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
               ),
             ),
-            child: Text(
-              'Ctrl+K',
-              style: TextStyle(
-                fontSize: 11,
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
         ],
       ),
     );
