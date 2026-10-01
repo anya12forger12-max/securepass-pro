@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:securepass_pro/core/constants/app_constants.dart';
 import 'package:securepass_pro/shared/widgets/ad_banner.dart';
 
@@ -39,30 +40,25 @@ class HomeScreen extends StatelessWidget {
                     icon: Icons.password,
                     title: 'Password Generator',
                     description: 'Generate secure random passwords',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/password-generator'),
+                    onTap: () => context.go('/password-generator'),
                   ),
                   _FeatureCard(
                     icon: Icons.chat,
                     title: 'Passphrase Generator',
                     description: 'Create memorable passphrases',
-                    onTap: () => Navigator.of(
-                      context,
-                    ).pushNamed('/passphrase-generator'),
+                    onTap: () => context.go('/passphrase-generator'),
                   ),
                   _FeatureCard(
                     icon: Icons.pin,
                     title: 'PIN Generator',
                     description: 'Generate secure PIN codes',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/pin-generator'),
+                    onTap: () => context.go('/pin-generator'),
                   ),
                   _FeatureCard(
                     icon: Icons.fingerprint,
                     title: 'UUID Generator',
                     description: 'Generate unique identifiers',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed('/uuid-generator'),
+                    onTap: () => context.go('/uuid-generator'),
                   ),
                 ],
               ),
