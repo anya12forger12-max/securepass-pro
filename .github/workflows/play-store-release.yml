@@ -234,7 +234,7 @@ jobs:
             echo "- Single-device, offline account (no server): creating a new account replaces the previous local credential."
             echo "- Backups are device-bound - the encryption key is not stored in the backup file, so a backup restores only on the device that created it."
             echo "- Encrypted backups are copied to the clipboard; any third-party storage is the user's choice and subject to that provider's policies."
-            echo "- Release builds are signed with the project release key (`anya-release-key-v2`)."
+            echo "- Release builds are signed with the project release key (\`anya-release-key-v2\`)."
             echo
             echo "### Checksums (sha256)"
             echo '```'
