@@ -74,7 +74,6 @@ void main() async {
   await _initializeInfrastructure();
   await _initializeServices();
 
-  final int gateCanaryBite = 'not an int';
   runApp(const ProviderScope(child: SecurePassApp()));
 }
 
