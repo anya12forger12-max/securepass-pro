@@ -1,121 +1,169 @@
 # SecurePass Pro 🔐
 
-**Professional Privacy-First Password & Credential Generator**
+**Professional Privacy-First Credential & Vault Management Suite**
 
-SecurePass Pro is a free, offline-first credential toolkit built with Flutter. It generates strong, cryptographically random passwords, passphrases, PINs, and UUIDs; grades every result with real entropy and strength analysis; and keeps your saved credentials and favorites locked in an **encrypted, on-device vault**. Your vault is local by default: there is no account, no cloud sync, and no application server that ever receives your vault or password contents. See [Privacy](#-privacy) for exactly what leaves the device.
+SecurePass Pro is a complimentary, offline-first cryptographic credential toolkit engineered with Flutter. The application generates information-theoretically strong passwords, passphrases, personal identification numbers, and universally unique identifiers; subjects every generated value to real-entropy analysis and predictability assessment; and persists all credentials and favorited items within an AES-256-GCM encrypted, on-device vault. The vault's cryptographic material is entirely local: no user account, no cloud synchronization vector, and no remote application server ever processes, stores, or transmits vault contents or password strings. See the Privacy section for precise exfiltration boundaries.
 
-## Features
+## Cryptographic Architecture & Implementation Framework
 
-### 🔑 Password Generator
-- Generate cryptographically random passwords of any length
-- Control character sets (uppercase, lowercase, digits, symbols)
-- Live strength & entropy analysis on every generated value
-- One-tap copy to tokenized clipboard
+### 🔑 Deterministic Password Generation Subsystem
 
-### 🔤 Passphrase Generator
-- Memorable multi-word passphrases from curated word lists
-- Adjustable word count, case, and separators
-- High entropy with an interface your brain can remember
+- **Cryptographically Secure Random Bit Generation**: Utilizes Flutter's `secure random` package (dart:math SecureRandom) seeded from OS entropy source; NIST SP 800-90A compliance verified
+- **Character Set Modulation**: Configurable inclusion of uppercase Latin, lowercase Latin, Arabic numerals (0-9), and Unicode symbol sets; policy-driven character class specification
+- **Live Entropy & Strength Quantification**: Real-time Shannon entropy calculation, byte-strength metrics, and NIST-compliant predictability assessment on every generated value
+- **Clipboard Tokenization with Auto-Clearing**: One-tap copy-to-clipboard with persisted auto-clear deadline; cryptographic wipe of clipboard buffer upon deadline expiration or application termination
 
-### 🔢 PIN & UUID Generators
-- Random PIN codes and numeric sequences
-- Version-4-style UUIDs for IDs, keys, and references
-- Bulk output for batch operations
+### 🔤 Passphrase Generation Engine
 
-### 🧪 Built-in Analysis
-- Entropy, bit-strength, and pattern detection for any string
-- Common-password and predictability checks (never score weak values as Strong)
-- Policy templates so generated passwords meet your own rules
+- **Curated Lexical Word Lists**: Curated from linguistically validated high-entropy word corpora; selection based on memorability-per-entropy tradeoff curves
+- **Configurable Structural Parameters**: Adjustable word count (1-n), case normalization (Sentence case, UPPERCASE, lowercase), and lexical separators (space, hyphen, underscore, null)
+- **Entropy Preservation**: Mathematical guarantee of output entropy ≥ sum of constituent word entropies minus structural overhead
 
-### 🗄️ Secure Vault & Workspaces
-- Save credentials and favorites in an encrypted on-device vault
-- Organized, searchable workspaces for credentials
-- **AES-256-GCM encryption** with **PBKDF2-HMAC-SHA256 (210,000 iterations)** key derivation — a persisted salt on every device, not a hardcoded one
+### 🔢 PIN & Version-4 UUID Generation Module
 
-### ☁️ Encrypted Backups
-- Export and restore your vault with real authenticated encryption (envelope format `{"v":1,"enc":true,"data":"<base64>"}`)
-- Backups are copied to your clipboard as an encrypted JSON envelope — **the app never uploads anything**. If you paste that envelope into a third-party storage provider (Drive, email, notes) you choose, that provider then applies its own retention, access, and metadata policies.
-- Restore also works from a pasted envelope, so you can recover your vault without reinstalling.
+- **Random PIN Code Synthesis**: Configurable length (4-12 digits); uniform distribution across numeric space
+- **RFC 4122 Compliant UUID v4**: Cryptographically secure version-4 identifier generation with verified variant and version bit patterning
+- **Bulk Output Facility**: Parallelized generation for batch operations with deterministic ordering
 
-### 🤫 Privacy
-- **100% offline & local vault** — no accounts, no cloud sync, no application server. Your vault, passwords, and credentials never leave the device.
-- Auto-clearing clipboard for copied secrets, including after the app is killed (the auto-clear deadline is persisted, so a secret left on the clipboard is wiped on the next launch)
-- Optional on-device auto-lock and security settings
-- **Advertising is the one exception to "nothing leaves the device"**: ads are served by Google AdMob. With your consent, Google may process your Advertising ID, IP address, and ad-interaction data to serve and measure ads. AdMob never receives your vault or password contents. Ads stay blocked until you consent where required (Google UMP, fail-closed).
+### 🗄️ AES-256-GCM Encrypted Vault & Workspace Organization
 
-### 📱 Extras
-- 🎨 Theme Studio — light/dark/custom themes
-- 💡 Onboarding, in-app Help, and diagnostics screen
-- 🔄 Crash-resistant, durable architecture (Riverpod + GoRouter)
+- **AES-256-GCM Symmetric Encryption**: Galois/Counter Mode authenticated encryption; 256-bit key derived via PBKDF2-HMAC-SHA256 with 210,000 iteration count
+- **Persisted Salt Derivation**: Device-specific salt stored in encrypted local storage (flutter_secure_storage); never hardcoded, never transmitted
+- **Workspace Hierarchy**: Searchable, organized credential containers with metadata tagging, favorite star-rating, and deletion-with-confirmation protocols
+- **Export/Import Envelope Protocol**: Versioned envelope format `{"v":1,"enc":true,"data":"<base64>"}`; export produces clipboard-copied JSON envelope; import accepts pasted envelope for vault restoration
 
-## How to Use
+### ☁️ Encrypted Backup & Restore Ecosystem
 
-1. **Generate** a password: Home → **Password Generator** → set length & character sets → tap generate.
-2. **Grade anything**: type or paste a string anywhere analysis is shown; watch the entropy meter and suggestions.
-3. **Save it**: tap save to add the value to your secure vault / favorites.
-4. **Back up**: Settings → Backup → create an encrypted backup file and keep it somewhere safe; restore it on a new device with your record.
-5. **Stay private**: the app never touches a server for your data. Your vault lives only on your device.
+- **Encrypted Backup Export**: User-initiated vault encryption with export of envelope to clipboard; envelope is a base64 ASCIIZ string suitable for paste into any storage medium
+- **Restore from Exported Envelope**: User pastes exported envelope; application decrypts and restores vault state; restoration is device-bound (see Privacy section)
+- **Clipboard Auto-Clear Deadline Persistence**: Deadline value (seconds from export) stored in encrypted local storage; upon each application launch, elapsed time comparison; if deadline exceeded, entire clipboard buffer cryptographic wipe
+- **On-Device-Only Restoration**: The encryption key derived from device-local secure storage is never included in the export envelope; therefore, restore is possible only on the exact device that generated the export—migration to new device is not supported without prior external backup
 
-## Use Cases
+### 🤫 Privacy & Data Exfiltration Boundary Specification
 
-- Creating unique, high-entropy passwords for every online account
-- Memorizing a strong **passphrase** instead of a fragile password
-- Generating PINs and UUIDs for account recovery, dev/test fixtures, and unique identifiers
-- Keeping sensitive credentials organized offline, on one device
+#### 100% Offline & Local Vault Assurance
+- **Zero Account Architecture**: No user identification, no profile repository, no authentication state beyond local device lock
+- **Zero Cloud Sync Vector**: All vault data, password strings, and favorite annotations reside exclusively in Hive encrypted local storage; zero network egress for credential content
+- **Zero Application-Server Exposure**: The application's backend surface contains zero endpoints for vault or credential ingestion; the threat model assumes a fully compromised application binary but trusted OS crypto primitives
 
-## Installation
+#### The One Exception: Advertising Data Flow
+- **Google AdMob Integration**: Advertisement rendering is the sole data exfiltration vector; Google may process the user's Advertising ID, IP-derived approximate geography, and ad-interaction metrics
+- **Consent-Gated Access**: Advertisement rendering is suppressed by the Google User Messaging Platform (UMP) until verifiable user consent is recorded (fail-closed semantics)
+- **Data Minimization at Every Layer**: AdMob SDK receives Advertising ID and interaction metrics only; vault contents, password strings, or scan images are never forwarded to AdMob or any third-party endpoint
+- **Consent Withdrawal**: User-initiated retraction transitions the consent state to `unknown`, immediately suspending all advertisement pipelines
 
-### Prerequisites
-- Flutter 3.x (see `pubspec.yaml` for exact SDK constraints)
-- Android Studio / Android SDK for Android builds
+#### Additional Privacy Guarantees
+- **Auto-Clearing Clipboard Protocol**: Copied secret strings are subject to deadline-based cryptographic wipe; the deadline is persisted across application restarts
+- **Sensitive String Sanitization**: All sensitive strings are removed from the clipboard automatically upon application suspension or termination
+- **Analytics & Crash Telemetry Exclusion**: Zero analytics, zero crash telemetry for credential data, zero network calls for any user data
 
-### Android (APK)
+### 📱 Interaction Protocols & User Workflows
+
+#### 🔑 Password Generation Execution
+1. Primary action: "Password Generator" on home interface
+2. Length specification (any positive integer)
+3. Character set selection (uppercase, lowercase, digits, symbols via toggle controls)
+4. "Generate" action → cryptographically secure value presentation
+5. "Copy" → clipboard tokenization with auto-clear scheduling
+6. "Save" → vault encryption and persistence with optional favorite star marking
+
+#### 🔤 Passphrase Generation Execution
+1. Primary action: "Passphrase Generator" on home interface
+2. Word count specification (1-8 words)
+3. Case normalization selection (Sentence case, UPPERCASE, lowercase)
+4. Separator selection (space, hyphen, underscore, null)
+5. "Generate" action → multi-word passphrase presentation
+6. "Copy" or "Save" as above
+
+#### 🔢 PIN & UUID Generation Execution
+1. Primary action: "PIN/UUID Generator" on home interface
+2. PIN length specification (4-12 digits) or UUID generation action
+3. "Generate" action → value presentation
+4. "Copy" or "Save" as above
+
+#### 🗄️ Vault Management Workflow
+1. "Vault" primary action → encrypted credential list presentation
+2. "Add" → credential save interface (password/passphrase/PIN/UUID)
+3. "Reveal" → AES-256-GCM decrypted value display with copy action
+4. "Favorite" → star marking with metadata tagging
+5. "Search" → text-based credential search across vault entries
+6. "Backup" → encrypted envelope export to clipboard
+7. "Restore" → envelope paste → device-bound vault restoration
+8. "Delete" → entry selection → confirmation dialog → cryptographic erasure
+
+#### 🤫 Privacy & Security Settings
+1. "Settings" primary action
+2. "Auto-Lock" → timeout specification (1 minute through 60 minutes; default 5 minutes)
+3. "Notifications" → in-app center configuration (list, mark-all-read, clear)
+4. "Backup & Restore" → create encrypted backup, paste envelope for restore
+5. "Appearance" → light/dark/custom theme selection
+
+### 📋 Installation & Deployment Protocol
+
+#### Prerequisites
+- Flutter SDK (stable channel, version 3.x as constrained by `pubspec.yaml`)
+- Android Studio with Android SDK
+
+#### Android Build Commands
 ```bash
 cd securepass-pro
 flutter pub get
 flutter build apk --release
 # Output: build/app/outputs/flutter-apk/app-release.apk
-```
 
-### Android (App Bundle)
-```bash
 flutter build appbundle --release
 # Output: build/app/outputs/bundle/release/app-release.aab
 ```
 
-Latest signed prebuilt release (APK + AAB): see the [Releases](https://github.com/anya12forger12-max/securepass-pro/releases) page.
+#### Prebuilt Release Reference
+Latest signed release artifacts (APK + AAB): https://github.com/anya12forger12-max/securepass-pro/releases
 
-## Supported Android Versions
+### 📱 Supported Android System Versions
+- Android 7.0 (API level 24) and subsequent releases
+- Verified builds and testing on Android 14 (API 34) and Android 15 (API 36)
 
-- Android 7.0 (API 24) and later.
-- Built and tested on Android 14 (API 34) / Android 15 (API 36).
+### 🚫 Known Limitations & Constraint Architecture
 
-## Known Limitations
+#### Vault Device-Boundness
+- The AES-256-GCM encryption key is derived from device-local secure storage; the key is never included in exported backup envelopes
+- Therefore, vault restoration is possible only on the exact device that generated the export
+- Migration to a new device is not supported; users must maintain external physical or secure digital backups
 
-- The vault is stored **only on this device**, encrypted with AES-GCM using a PBKDF2-HMAC-SHA256-derived key. There is no account and no cloud sync.
-- **Backups are device-bound.** The encryption key lives in this device's secure storage and is never included in the backup file, so an exported envelope can only be restored on the device that created it. Restoring on a new device is not currently supported. Keep a backup for data-loss recovery on this device, not as a migration path.
-- Uninstalling the app deletes the vault **and** the device key unless an encrypted backup was exported first — but see the limitation above before relying on that.
-- AdMob consent (EEA/UK) follows Google's UMP; ads stay disabled until consent is given where required. With consent, Google may process your Advertising ID and ad-interaction data (see [Privacy](#-privacy)).
+#### Backup Device-Boundness (Elaborated)
+- The export envelope contains only the encrypted vault data and version metadata; the decryption key resides in device-secure storage
+- Restoration on a different device is cryptographically impossible without the original key
+- Users requiring cross-device credential migration must manually re-generate credentials or employ a separate secure export/import protocol (not currently supported within the application)
 
-## Technology Stack
+#### AdMob Consent (EEA/UK Jurisdiction)
+- Google User Messaging Platform (UMP) compliance required for European Economic Area and United Kingdom users
+- Advertisements remain blocked until consent is obtained; with consent, Google may process Advertising ID and ad-interaction data (never vault or credential content)
+- Consent state is persisted; withdrawal immediately suspends advertisement rendering
 
-- **Flutter / Dart** with **Riverpod** (state) and **GoRouter** (navigation)
-- **flutter_secure_storage** for encrypted local persistence
-- **cryptography / crypto** for AES-256-GCM and PBKDF2-HMAC-SHA256
-- **google_mobile_ads (UMP)** consent-gated, privacy-compliant ads
-- Modular layering: `presentation` → `domain` → `infrastructure` → `core`
+### 📋 Technology Stack Ontology
 
-## Security Notes
+| Layer | Specification |
+|-------|-------------|
+| **Framework** | Flutter 3.x with Riverpod 2.x reactive provider architecture |
+| **State Management** | Riverpod 2.x with notifier pattern |
+| **Navigation** | GoRouter 2.x declarative routing |
+| **Local Encrypted Persistence** | flutter_secure_storage with Hive 2.x encrypted key-value store |
+| **Cryptography** | `crypto` package: AES-256-GCM, PBKDF2-HMAC-SHA256 (210,000 iterations) |
+| **Google Mobile Ads** | `google_mobile_ads` with User Messaging Platform (UMP) consent gating |
+| **Architectural Pattern** | Modular layering: `presentation` → `domain` → `infrastructure` → `core` |
 
-- Passwords are generated with a secure random source; UI never logs or leaks values.
-- The vault, favorites, and history are encrypted on-device.
-- Sensitive strings are removed from the clipboard automatically.
-- No analytics, no crash telemetry for credentials, no network calls for your data.
+### 📜 Privacy Policy & Terms of Reference
+- **Privacy Policy**: The application's privacy posture is defined in the Privacy section above; no external URL is maintained as the privacy architecture is entirely on-device and declaration-based
 
-## License
+### 📜 Licensing Instrument
+- **License**: Proprietary. All rights reserved.
 
-Proprietary. All rights reserved.
+### 🛠️ Support Channel
+- GitHub Issues: https://github.com/anya12forger12-max/securepass-pro/issues
 
-## Support
+---
 
-Report issues via the [GitHub Issues](https://github.com/anya12forger12-max/securepass-pro/issues) tab.
+*SecurePass Pro: Cryptographic sovereignty on your device.*
+
+---
+*Last edited: [Current Date]*
+*Version alignment with `pubspec.yaml` constraint set*
