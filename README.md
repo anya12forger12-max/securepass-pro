@@ -55,7 +55,7 @@ SecurePass Pro is a complimentary, offline-first cryptographic credential toolki
 #### Additional Privacy Guarantees
 - **Auto-Clearing Clipboard Protocol**: Copied secret strings are subject to deadline-based cryptographic wipe; the deadline is persisted across application restarts
 - **Sensitive String Sanitization**: All sensitive strings are removed from the clipboard automatically upon application suspension or termination
-- **Analytics & Crash Telemetry Exclusion**: Zero analytics, zero crash telemetry for credential data, zero network calls for any user data
+- **Analytics & Crash Telemetry Exclusion**: Zero analytics and no credential-bearing crash telemetry; `firebase_crashlytics` reports crash stack traces only (no vault or password data), zero network calls for any user data
 
 ### 📱 Interaction Protocols & User Workflows
 
@@ -149,10 +149,12 @@ Latest signed release artifacts (APK + AAB): https://github.com/anya12forger12-m
 | **Local Encrypted Persistence** | flutter_secure_storage with Hive 2.x encrypted key-value store |
 | **Cryptography** | `crypto` package: AES-256-GCM, PBKDF2-HMAC-SHA256 (210,000 iterations) |
 | **Google Mobile Ads** | `google_mobile_ads` with User Messaging Platform (UMP) consent gating |
+| **Crash & Stability Reporting** | `firebase_crashlytics` for crash reporting (stack traces only; no credential or vault data is transmitted) |
 | **Architectural Pattern** | Modular layering: `presentation` → `domain` → `infrastructure` → `core` |
 
 ### 📜 Privacy Policy & Terms of Reference
 - **Privacy Policy**: The application's privacy posture is defined in the Privacy section above; no external URL is maintained as the privacy architecture is entirely on-device and declaration-based
+- **Cookie Policy**: `COOKIE_POLICY.md` documents cookie categories, consent mechanics, and AdMob advertising-cookie usage
 
 ### 📜 Licensing Instrument
 - **License**: Proprietary. All rights reserved.
@@ -166,4 +168,4 @@ Latest signed release artifacts (APK + AAB): https://github.com/anya12forger12-m
 
 ---
 *Last edited: [Current Date]*
-*Version alignment with `pubspec.yaml` constraint set*
+*Version: 2.2.32+36 (as per pubspec.yaml)*
