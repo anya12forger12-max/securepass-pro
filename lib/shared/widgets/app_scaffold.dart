@@ -52,6 +52,16 @@ class AppScaffold extends ConsumerWidget {
       appBar: const AppTopBar(),
       body: child,
       bottomNavigationBar: NavigationBar(
+        // The longest destination label is "Password Generator". The
+        // NavigationBar renders labels as an unconstrained `Text` (no
+        // maxLines), so on a narrow viewport the label wraps to three lines
+        // and the fixed-height bar clips it mid-word ("Setting s",
+        // "Worksp ace", "Passw ord Ge nerator"). Below the threshold the bar
+        // switches to the Material compact form (icons only) and the label
+        // stays reachable through the destination tooltip.
+        labelBehavior: _isCompactNav(context)
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex: _getMobileIndex(currentSection),
         onDestinationSelected: (index) {
           const sections = _mobileSections;
@@ -63,12 +73,28 @@ class AppScaffold extends ConsumerWidget {
                 icon: Icon(s.icon),
                 selectedIcon: Icon(s.activeIcon),
                 label: s.label,
+                tooltip: s.label,
               ),
             )
             .toList(),
       ),
     );
   }
+
+  /// Width of one navigation slot, in logical pixels.
+  ///
+  /// A destination label needs roughly 60dp of slot width to stay on two
+  /// lines; below that it wraps to three and gets clipped. The label's text
+  /// scaling is clamped to 1.3x by the NavigationBar itself, so the same
+  /// clamp is applied here to keep the two in agreement.
+  static bool _isCompactNav(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final textScale = media.textScaler.scale(1.0).clamp(1.0, 1.3);
+    final slotWidth = media.size.width / textScale / _mobileSections.length;
+    return slotWidth < _kMinLabelSlotWidth;
+  }
+
+  static const double _kMinLabelSlotWidth = 60.0;
 
   static const _mobileSections = <NavigationSection>[
     NavigationSection.home,

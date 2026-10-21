@@ -62,71 +62,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
           Text('Settings', style: theme.textTheme.headlineMedium),
           const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              children: [
-                Builder(builder: (context) {
-                  final auth = AuthService();
-                  final isAuthed = ref.read(loginStateProvider).isAuthenticated;
-                  final signedIn = auth.hasAccount && isAuthed;
-                  return Card(
-                    child: ListTile(
-                      leading: Icon(
-                        signedIn ? Icons.logout : Icons.account_circle,
-                      ),
-                      title: Text(signedIn ? 'Sign Out' : 'Sign In'),
-                      subtitle: Text(
-                        signedIn
-                            ? 'Signed in as ${auth.signedInEmail ?? 'your account'}'
-                            : 'Create or sign in to a local account',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _handleAccount(context),
-                    ),
-                  );
-                }),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.palette),
-                    title: const Text('Appearance'),
-                    subtitle: const Text('Theme, colors, and display settings'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openAppearance(context),
-                  ),
+          Builder(builder: (context) {
+            final auth = AuthService();
+            final isAuthed = ref.read(loginStateProvider).isAuthenticated;
+            final signedIn = auth.hasAccount && isAuthed;
+            return Card(
+              child: ListTile(
+                leading: Icon(
+                  signedIn ? Icons.logout : Icons.account_circle,
                 ),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.security),
-                    title: const Text('Security'),
-                    subtitle: const Text('Encryption, auto-lock, and privacy'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openSecurity(context),
-                  ),
+                title: Text(signedIn ? 'Sign Out' : 'Sign In'),
+                subtitle: Text(
+                  signedIn
+                      ? 'Signed in as ${auth.signedInEmail ?? 'your account'}'
+                      : 'Create or sign in to a local account',
                 ),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.notifications),
-                    title: const Text('Notifications'),
-                    subtitle: const Text('In-app notification center'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openNotifications(context),
-                  ),
-                ),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.backup),
-                    title: const Text('Backup & Restore'),
-                    subtitle: const Text('Export, import, and backup data'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openBackupAndRestore(context),
-                  ),
-                ),
-              ],
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _handleAccount(context),
+              ),
+            );
+          }),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.palette),
+              title: const Text('Appearance'),
+              subtitle: const Text('Theme, colors, and display settings'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openAppearance(context),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.security),
+              title: const Text('Security'),
+              subtitle: const Text('Encryption, auto-lock, and privacy'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openSecurity(context),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
+              subtitle: const Text('In-app notification center'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openNotifications(context),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.backup),
+              title: const Text('Backup & Restore'),
+              subtitle: const Text('Export, import, and backup data'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openBackupAndRestore(context),
             ),
           ),
         ],

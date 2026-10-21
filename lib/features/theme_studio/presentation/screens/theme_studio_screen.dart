@@ -26,8 +26,7 @@ class ThemeStudioScreen extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
           Text('Theme Studio', style: theme.textTheme.headlineMedium),
           const SizedBox(height: 8),
@@ -38,65 +37,59 @@ class ThemeStudioScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
+          Text('Theme Mode', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
               children: [
-                Text('Theme Mode', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Card(
-                  child: Column(
-                    children: [
-                      for (final mode in AppThemeMode.values)
-                        ListTile(
-                          leading: Icon(
-                            switch (mode) {
-                              AppThemeMode.system => Icons.brightness_auto,
-                              AppThemeMode.light => Icons.light_mode,
-                              AppThemeMode.dark => Icons.dark_mode,
-                              AppThemeMode.highContrast =>
-                                Icons.contrast,
-                              AppThemeMode.ultraHighContrast =>
-                                Icons.highlight,
-                            },
-                          ),
-                          title: Text(mode.label),
-                          subtitle: Text(_modeDescription(mode)),
-                          trailing: state.mode == mode
-                              ? Icon(
-                                  Icons.check_circle,
-                                  color: colorScheme.primary,
-                                )
-                              : null,
-                          onTap: () => notifier.setMode(mode),
-                        ),
-                    ],
+                for (final mode in AppThemeMode.values)
+                  ListTile(
+                    leading: Icon(
+                      switch (mode) {
+                        AppThemeMode.system => Icons.brightness_auto,
+                        AppThemeMode.light => Icons.light_mode,
+                        AppThemeMode.dark => Icons.dark_mode,
+                        AppThemeMode.highContrast =>
+                          Icons.contrast,
+                        AppThemeMode.ultraHighContrast =>
+                          Icons.highlight,
+                      },
+                    ),
+                    title: Text(mode.label),
+                    subtitle: Text(_modeDescription(mode)),
+                    trailing: state.mode == mode
+                        ? Icon(
+                            Icons.check_circle,
+                            color: colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () => notifier.setMode(mode),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Text('Accent Color', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'Applied to Light and Dark modes.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    for (final color in _accentChoices)
-                      _AccentSwatch(
-                        color: color,
-                        selected: state.accentColor.toARGB32() ==
-                            color.toARGB32(),
-                        onTap: () => notifier.setAccentColor(color),
-                      ),
-                  ],
-                ),
               ],
             ),
+          ),
+          const SizedBox(height: 24),
+          Text('Accent Color', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Applied to Light and Dark modes.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final color in _accentChoices)
+                _AccentSwatch(
+                  color: color,
+                  selected: state.accentColor.toARGB32() ==
+                      color.toARGB32(),
+                  onTap: () => notifier.setAccentColor(color),
+                ),
+            ],
           ),
         ],
       ),

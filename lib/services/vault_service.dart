@@ -240,6 +240,11 @@ class VaultService {
   void lock() {
     _isLocked = true;
     _lastUnlockTime = null;
+    // The locked flag is part of the persisted vault blob (`_persist` writes
+    // `isLocked` and `_load` restores it). Without this write the lock only
+    // ever existed in memory, so a vault locked by the user - or by the
+    // inactivity timer - silently reopened unlocked after the next launch.
+    unawaited(_persist());
     AppLogger.instance.info(
       'Vault locked',
       category: 'VaultService',
@@ -257,6 +262,10 @@ class VaultService {
 
     _isLocked = false;
     _lastUnlockTime = DateTime.now();
+    // Mirror of `lock`: keep the persisted `isLocked` flag in step with the
+    // in-memory state, so the next launch opens the vault in the state the
+    // user left it in.
+    unawaited(_persist());
     AppLogger.instance.info(
       'Vault unlocked',
       category: 'VaultService',
