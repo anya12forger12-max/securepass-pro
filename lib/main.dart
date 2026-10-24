@@ -68,12 +68,35 @@ import 'package:securepass_pro/infrastructure/ui_platform/ui_platform.dart';
 import 'package:securepass_pro/infrastructure/accessibility_platform/accessibility_platform.dart';
 import 'package:securepass_pro/infrastructure/api_maturity/api_maturity.dart';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Crashlytics for production error tracking
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  bool firebaseReady = false;
+  try {
+    await Firebase.initializeApp();
+    firebaseReady = true;
+  } catch (e, stack) {
+    // Firebase initialization failed; continue without Firebase services.
+    // Log the error so it is captured by Crashlytics only if/when initialized.
+    FlutterError.reportError(
+      FlutterErrorDetails(exception: e, stack: stack),
+    );
+  }
+
+  // Initialize Crashlytics for production error tracking only if Firebase is ready.
+  if (firebaseReady) {
+    try {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    } catch (e, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: e, stack: stack),
+      );
+    }
+  }
 
   await _initializeInfrastructure();
   await _initializeServices();
