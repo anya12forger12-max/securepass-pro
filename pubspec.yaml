@@ -1,7 +1,7 @@
 name: securepass_pro
 description: "Professional Privacy-First Password & Credential Generator"
 publish_to: 'none'
-version: 2.2.33+37
+version: 2.2.34+38
 
 environment:
   sdk: ^3.12.2
