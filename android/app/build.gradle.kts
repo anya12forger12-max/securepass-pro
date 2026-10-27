@@ -82,8 +82,12 @@ flutter {
 }
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    // Keep the BoM in step with what Flutter's Firebase plugins actually request
+    // (firebase_core / firebase_crashlytics pull in firebase-bom:34.19.0, which wins
+    // conflict resolution). BoM 34.x no longer publishes the -ktx artifacts, so use
+    // the base modules here; -ktx was only a thin wrapper over them.
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.guava:guava:32.0.0-android")
 }
